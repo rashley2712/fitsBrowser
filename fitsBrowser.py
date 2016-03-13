@@ -107,9 +107,12 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Makes a web-browser accessible page containing previews and thumbnails of all FITS images in a directory.')
 	parser.add_argument('--datapath', type=str, help='Path where the FITS files are. Default: current directory')
 	parser.add_argument('--webpath', type=str, help='Path to write the web page and images to. Default: current directory')
+	parser.add_argument('--installpath', type=str, help='Path of where this application has been installed. This is so that it can find the HTML files to copy to the web folder. ')
+	parser.add_argument('--size', type=int, help='Thumbnail size. Default is 128 pixels.')
 	parser.add_argument('--save', action="store_true", help='Write the input parameters to the config file as default values.')
 	parser.add_argument('--skipallimages', action="store_true", help="Skip creating of the images and thumbnails, just create the metadata. (For debugging purposes)")
 	parser.add_argument('--skipimages', action="store_true", help="Skip creating of the images (but still creates the thumbnails.")
+	parser.add_argument('--html', action="store_true", help="Skip most of the work and just write the HTML pages to the destination folder. (creating of the images (but still creates the thumbnails.")
 	
 	args = parser.parse_args()
 	print(args)
@@ -126,16 +129,27 @@ if __name__ == "__main__":
 	configDefaults  = {
 		"FITSPath": ".",
 		"SearchString": ".*.(fits|fits.gz|fits.fz|fit)",
-		"WebPath": "."
+		"WebPath": ".",
+		"InstallPath": ".", 
+		"ThumbnailSize": 128
 	}
 	config.setDefaults(configDefaults)
 	rootPath = config.assertProperty("FITSPath", args.datapath)
 	searchString = config.assertProperty("SearchString", None)
 	webPath = config.assertProperty("WebPath", args.webpath)
+	installPath = config.assertProperty("InstallPath", args.installpath)
+	thumbnailSize = config.assertProperty("ThumbnailSize", args.size)
 	if args.save:
 		config.save()
 	
 	search_re = re.compile(searchString)
+	
+	
+	# Copy index.html file from source code folder to the web folder
+	shutil.copy2(installPath + "/index.html", webPath + "/index.html")
+	print os.path.dirname(sys.argv[0]) 
+	print os.path.abspath(os.path.dirname(sys.argv[0]))
+	if args.html: sys.exit()
 	
 	fitsFiles = []
 	# Find all folders in data path
@@ -170,7 +184,7 @@ if __name__ == "__main__":
 				newImage.writeAsPNG(boosted=True, filename=imageFilename)
 				imageJSON['pngFilename'] = "images/" + changeExtension(newImage.filename, "png")
 			imageFilename = imageFolder + "/thumb_" + changeExtension(newImage.filename, "png")
-			newImage.createThumbnail(filename=imageFilename, size=256)
+			newImage.createThumbnail(filename=imageFilename, size=thumbnailSize)
 			imageJSON['thumbnailFilename'] = "images/thumb_" + changeExtension(newImage.filename, "png")
 			imageJSON['sourceFilename'] = newImage.filename
 			imageJSON['xSize'] = newImage.size[0]
@@ -184,8 +198,6 @@ if __name__ == "__main__":
 	jsFile.write(";")
 	jsFile.close()
 	
-	# Copy index.html file from source code folder to the web folder
-	shutil.copy2("/Users/rashley/code/fitsBrowser/index.html", webPath + "/index.html")
 	
 	print ""
 	print "Finished!"
