@@ -144,7 +144,11 @@ if __name__ == "__main__":
 	
 	search_re = re.compile(searchString)
 	
-	
+	# Create sub-folder for the images
+	imageFolder = webPath + "/images"
+	if debug: print "Creating folder %s"%imageFolder
+	if not os.path.exists(imageFolder):
+		os.makedirs(imageFolder)
 	# Copy index.html file from source code folder to the web folder
 	shutil.copy2(installPath + "/index.html", webPath + "/index.html")
 	print os.path.dirname(sys.argv[0]) 
@@ -165,11 +169,6 @@ if __name__ == "__main__":
 
 		print ("Found %d fits files in the folder %s"%(len(FITSFilenames), f[0]))
 		
-	# Create sub-folder for the images
-	imageFolder = webPath + "/images"
-	if debug: print "Creating folder %s"%imageFolder
-	if not os.path.exists(imageFolder):
-		os.makedirs(imageFolder)
 	jsonData = []
 
 	for f in FITSFilenames:
