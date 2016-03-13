@@ -151,8 +151,7 @@ if __name__ == "__main__":
 		os.makedirs(imageFolder)
 	# Copy index.html file from source code folder to the web folder
 	shutil.copy2(installPath + "/index.html", webPath + "/index.html")
-	print os.path.dirname(sys.argv[0]) 
-	print os.path.abspath(os.path.dirname(sys.argv[0]))
+	shutil.copy2(installPath + "/styles.css", webPath + "/styles.css")
 	if args.html: sys.exit()
 	
 	fitsFiles = []
