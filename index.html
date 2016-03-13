@@ -1,0 +1,57 @@
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+		<title>FITS image browser</title>
+	</head>
+
+<script src="../ws-client/jquery.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+<script src="imageMetadata.js"></script>
+
+<script type="text/javascript">	
+	// Global variables
+	var imageMetadata;
+	var numberImages = 0;
+	
+	// Call my start up method after the page has finished loading
+	window.addEventListener("load", pageLoaded, false);
+	
+	function pageLoaded() {
+		console.log("Page has finished loading.");
+		numberImages = imageMetadata.length;
+		console.log(imageMetadata);
+		makeImageTable();
+		$("#numberimages").text(imageMetadata.length);
+	}
+	
+	function makeImageTable() {
+		var index = 0;
+		var maxWidth = 4;
+		tableHTML = "<table border='1' width='100%'>";
+		tableHTML+= "<tr>";
+		for (var i=0; i < numberImages; i++) {
+			tableHTML+= "<td align='center'>";
+			if (imageMetadata[index].pngFilename!=null) tableHTML+= "<a href='" + imageMetadata[index].pngFilename + "'>"
+			tableHTML+= "<img src='" + imageMetadata[index].thumbnailFilename + "'>";
+			tableHTML+= "<br/>" + imageMetadata[index].sourceFilename
+			if (imageMetadata[index].pngFilename!=null) tableHTML+= "</a>"
+			tableHTML+= "</td>";
+			index++;
+			if ((index % maxWidth) == 0) tableHTML+= "</tr></tr>";
+		}
+		tableHTML+= "</tr>";
+
+		tableHTML+= "</table>";
+		$("#imagetable").html(tableHTML);
+	}
+	
+	
+</script>
+<body>	
+	
+	<h1>FITS image browser</h1>
+	<p>Number of images: <strong><span id="numberimages">0</span></strong></p>
+	<div id="imagetable"></div>
+</body>
+
+</html>
