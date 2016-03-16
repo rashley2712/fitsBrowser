@@ -1,48 +1,125 @@
 <html>
 	<head>
-		<link rel="stylesheet" type="text/css" href="styles.css">
+		 <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
 		<title>FITS image browser</title>
 	</head>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
-<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+
 <script src="imageMetadata.js"></script>
 
 <script type="text/javascript">	
 	// Global variables
 	var imageMetadata;
 	var numberImages = 0;
+	tableFormat = "grid";
+	currentDirection = "ascending";
 	
 	// Call my start up method after the page has finished loading
 	window.addEventListener("load", pageLoaded, false);
-	
+		
 	function pageLoaded() {
-		console.log("Page has finished loading.");
 		numberImages = imageMetadata.length;
 		console.log(imageMetadata);
-		makeImageTable();
 		$("#numberimages").text(imageMetadata.length);
+		//imageMetadata.sort(function(a){return imageMetadata.sourceFilename;});
+		// Check for any pre-saved configuration
+		if (localStorage.tableFormat) {
+			tableFormat = localStorage.tableFormat;
+		}
+		if (localStorage.sortOrder) {
+			currentDirection = localStorage.sortOrder;
+			sort(currentDirection);
+		} else sort("ascending");
+		makeImageTable();
+		
+	}
+	
+	function sort(direction) {
+		if (direction=="ascending") currentDirection = "ascending";
+		if (direction=="descending") currentDirection = "descending";
+		if (direction=="toggle") currentDirection = currentDirection == "ascending" ? "descending" : "ascending";
+		if (currentDirection=="ascending") imageMetadata.sort(function(a,b) {
+		    var x = a.sourceFilename.toLowerCase();
+		    var y = b.sourceFilename.toLowerCase();
+		    return x < y ? -1 : x > y ? 1 : 0;
+		});
+		else imageMetadata = imageMetadata.sort(function(a,b) {
+		    var x = a.sourceFilename.toLowerCase();
+		    var y = b.sourceFilename.toLowerCase();
+		    return x < y ? 1 : x > y ? -1 : 0;
+		});
+		
+		console.log("Sorted: ", direction);
+		makeImageTable();
+		if (currentDirection == "ascending") {
+			$("#sorticon").removeClass("glyphicon-sort-by-alphabet");
+			$("#sorticon").addClass("glyphicon-sort-by-alphabet-alt");
+		} else {
+			$("#sorticon").addClass("glyphicon-sort-by-alphabet");
+			$("#sorticon").removeClass("glyphicon-sort-by-alphabet-alt");
+		}
+		localStorage.sortOrder = currentDirection;
 	}
 	
 	function makeImageTable() {
 		var index = 0;
 		var maxWidth = 4;
 		tableHTML = "<table border='1' width='100%'>";
-		tableHTML+= "<tr>";
-		for (var i=0; i < numberImages; i++) {
-			tableHTML+= "<td align='center'>";
-			if (imageMetadata[index].pngFilename!=null) tableHTML+= "<a href='" + imageMetadata[index].pngFilename + "'>"
-			tableHTML+= "<img src='" + imageMetadata[index].thumbnailFilename + "'>";
-			tableHTML+= "<br/>" + imageMetadata[index].sourceFilename
-			if (imageMetadata[index].pngFilename!=null) tableHTML+= "</a>"
-			tableHTML+= "</td>";
-			index++;
-			if ((index % maxWidth) == 0) tableHTML+= "</tr></tr>";
+		switch(tableFormat) {
+		case "grid":
+			tableHTML+= "<tr>";
+			for (var i=0; i < numberImages; i++) {
+				tableHTML+= "<td align='center'>";
+				if (imageMetadata[index].pngFilename!=null) tableHTML+= "<a href='" + imageMetadata[index].pngFilename + "'>"
+				tableHTML+= "<img src='" + imageMetadata[index].thumbnailFilename + "'>";
+				tableHTML+= "<br/>" + imageMetadata[index].sourceFilename;
+				if (imageMetadata[index].pngFilename!=null) tableHTML+= "</a>";
+				tableHTML+= "</td>";
+				index++;
+				if ((index % maxWidth) == 0) tableHTML+= "</tr></tr>";
+			}
+			tableHTML+= "</tr>";
+			break;
+		case "rows":
+			for (var i=0; i < numberImages; i++) {
+				tableHTML+= "<tr><td>";
+				if (imageMetadata[index].pngFilename!=null) tableHTML+= "<a href='" + imageMetadata[index].pngFilename + "'>";
+				tableHTML+= "<img align='left' src='" + imageMetadata[index].thumbnailFilename + "'>";
+				if (imageMetadata[index].pngFilename!=null) tableHTML+= "</a>";
+				tableHTML+= "<br/>" + imageMetadata[index].sourceFilename;
+				tableHTML+= "</td></tr>";
+				index++;
+			}
+			break;
 		}
-		tableHTML+= "</tr>";
+		
 
 		tableHTML+= "</table>";
 		$("#imagetable").html(tableHTML);
+	}
+	
+	function switchTable(format) {
+		if (format=="grid") {
+			console.log("Grid table requested...");
+			if (tableFormat=="grid") {
+				console.log("...ignoring it.");
+			} else {
+				tableFormat = "grid";
+				makeImageTable();
+			}
+		}
+		if (format=="rows") {
+			console.log("Row table requested...");
+			if (tableFormat=="rows") console.log("...ignoring it.");
+			else {
+				tableFormat = "rows";
+				makeImageTable();
+			}
+		}
+		localStorage.tableFormat = tableFormat;
+		
+		
 	}
 	
 	
@@ -51,7 +128,12 @@
 	
 	<h1>FITS image browser</h1>
 	<p>Number of images: <strong><span id="numberimages">0</span></strong></p>
-	<div id="imagetable"></div>
+	<span class="glyphicon glyphicon-th" onclick="switchTable('grid')"></span>&nbsp;
+	<span class="glyphicon glyphicon-th-list" onclick="switchTable('rows')"></span>&nbsp;
+	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>
+	<br/>
+
+	<span id="imagetable"></span>
 </body>
 
 </html>
