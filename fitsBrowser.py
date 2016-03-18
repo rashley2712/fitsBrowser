@@ -190,7 +190,7 @@ if __name__ == "__main__":
 			
 	jsFilename = webPath + "/imageMetadata.js"
 	jsFile = open(jsFilename, 'wt')
-	jsFile.write("var imageMetadata= ")
+	jsFile.write("var allImages= ")
 	jsFile.write(json.dumps(jsonData))
 	jsFile.write(";")
 	jsFile.close()

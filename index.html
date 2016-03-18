@@ -10,8 +10,8 @@
 
 <script type="text/javascript">	
 	// Global variables
-	var imageMetadata;
-	var numberImages = 0;
+	var allImages;
+	var currentImages;
 	tableFormat = "grid";
 	currentDirection = "ascending";
 	
@@ -19,9 +19,9 @@
 	window.addEventListener("load", pageLoaded, false);
 		
 	function pageLoaded() {
-		numberImages = imageMetadata.length;
-		console.log(imageMetadata);
-		$("#numberimages").text(imageMetadata.length);
+		console.log(allImages);
+		$("#numberimages").text(allImages.length);
+		currentImages = allImages.slice(0);
 		//imageMetadata.sort(function(a){return imageMetadata.sourceFilename;});
 		// Check for any pre-saved configuration
 		if (localStorage.tableFormat) {
@@ -31,7 +31,7 @@
 			currentDirection = localStorage.sortOrder;
 			sort(currentDirection);
 		} else sort("ascending");
-		makeImageTable();
+		makeImageTable(currentImages);
 		
 	}
 	
@@ -39,19 +39,19 @@
 		if (direction=="ascending") currentDirection = "ascending";
 		if (direction=="descending") currentDirection = "descending";
 		if (direction=="toggle") currentDirection = currentDirection == "ascending" ? "descending" : "ascending";
-		if (currentDirection=="ascending") imageMetadata.sort(function(a,b) {
+		if (currentDirection=="ascending") currentImages.sort(function(a,b) {
 		    var x = a.sourceFilename.toLowerCase();
 		    var y = b.sourceFilename.toLowerCase();
 		    return x < y ? -1 : x > y ? 1 : 0;
 		});
-		else imageMetadata = imageMetadata.sort(function(a,b) {
+		else imageMetadata = currentImages.sort(function(a,b) {
 		    var x = a.sourceFilename.toLowerCase();
 		    var y = b.sourceFilename.toLowerCase();
 		    return x < y ? 1 : x > y ? -1 : 0;
 		});
 		
 		console.log("Sorted: ", direction);
-		makeImageTable();
+		makeImageTable(currentImages);
 		if (currentDirection == "ascending") {
 			$("#sorticon").removeClass("glyphicon-sort-by-alphabet");
 			$("#sorticon").addClass("glyphicon-sort-by-alphabet-alt");
@@ -62,19 +62,20 @@
 		localStorage.sortOrder = currentDirection;
 	}
 	
-	function makeImageTable() {
+	function makeImageTable(images) {
 		var index = 0;
 		var maxWidth = 4;
 		tableHTML = "<table border='1' width='100%'>";
+		var numberImages = images.length;
 		switch(tableFormat) {
 		case "grid":
 			tableHTML+= "<tr>";
 			for (var i=0; i < numberImages; i++) {
 				tableHTML+= "<td align='center'>";
-				if (imageMetadata[index].pngFilename!=null) tableHTML+= "<a href='" + imageMetadata[index].pngFilename + "'>"
-				tableHTML+= "<img src='" + imageMetadata[index].thumbnailFilename + "'>";
-				tableHTML+= "<br/>" + imageMetadata[index].sourceFilename;
-				if (imageMetadata[index].pngFilename!=null) tableHTML+= "</a>";
+				if (images[index].pngFilename!=null) tableHTML+= "<a href='" + images[index].pngFilename + "'>"
+				tableHTML+= "<img src='" + images[index].thumbnailFilename + "'>";
+				tableHTML+= "<br/>" + images[index].sourceFilename;
+				if (images[index].pngFilename!=null) tableHTML+= "</a>";
 				tableHTML+= "</td>";
 				index++;
 				if ((index % maxWidth) == 0) tableHTML+= "</tr></tr>";
@@ -84,10 +85,10 @@
 		case "rows":
 			for (var i=0; i < numberImages; i++) {
 				tableHTML+= "<tr><td>";
-				if (imageMetadata[index].pngFilename!=null) tableHTML+= "<a href='" + imageMetadata[index].pngFilename + "'>";
-				tableHTML+= "<img align='left' src='" + imageMetadata[index].thumbnailFilename + "'>";
-				if (imageMetadata[index].pngFilename!=null) tableHTML+= "</a>";
-				tableHTML+= "<br/>" + imageMetadata[index].sourceFilename;
+				if (images[index].pngFilename!=null) tableHTML+= "<a href='" + images[index].pngFilename + "'>";
+				tableHTML+= "<img align='left' src='" + images[index].thumbnailFilename + "'>";
+				if (images[index].pngFilename!=null) tableHTML+= "</a>";
+				tableHTML+= "<br/>" + images[index].sourceFilename;
 				tableHTML+= "</td></tr>";
 				index++;
 			}
@@ -106,7 +107,7 @@
 				console.log("...ignoring it.");
 			} else {
 				tableFormat = "grid";
-				makeImageTable();
+				makeImageTable(currentImages);
 			}
 		}
 		if (format=="rows") {
@@ -114,12 +115,24 @@
 			if (tableFormat=="rows") console.log("...ignoring it.");
 			else {
 				tableFormat = "rows";
-				makeImageTable();
+				makeImageTable(currentImages);
 			}
 		}
 		localStorage.tableFormat = tableFormat;
 		
 		
+	}
+	
+	function filterImages() {
+		enteredText = document.getElementById("filter").value;
+		console.log(enteredText);
+		var filteredImages = [];
+		for (var i in allImages) {
+			if (allImages[i].sourceFilename.indexOf(enteredText)!=-1) filteredImages.push(allImages[i]);
+		}
+		console.log(filteredImages);
+		currentImages = filteredImages;
+		makeImageTable(filteredImages);
 	}
 	
 	
@@ -130,7 +143,8 @@
 	<p>Number of images: <strong><span id="numberimages">0</span></strong></p>
 	<span class="glyphicon glyphicon-th" onclick="switchTable('grid')"></span>&nbsp;
 	<span class="glyphicon glyphicon-th-list" onclick="switchTable('rows')"></span>&nbsp;
-	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>
+	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>&nbsp;
+	<input type="text" size="8" id="filter" oninput="filterImages()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>
 	<br/>
 
 	<span id="imagetable"></span>
