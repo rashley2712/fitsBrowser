@@ -24,33 +24,39 @@
 		currentImages = allImages.slice(0);
 		//imageMetadata.sort(function(a){return imageMetadata.sourceFilename;});
 		// Check for any pre-saved configuration
+		if (localStorage.searchString) {
+			$("#filter").text(localStorage.searchString);
+			filterImages();
+		}
 		if (localStorage.tableFormat) {
 			tableFormat = localStorage.tableFormat;
 		}
 		if (localStorage.sortOrder) {
-			currentDirection = localStorage.sortOrder;
-			sort(currentDirection);
+			sort(localStorage.sortOrder);
+			console.log("retrieved sort order", localStorage.sortOrder);
 		} else sort("ascending");
+		
 		makeImageTable(currentImages);
 		
 	}
 	
 	function sort(direction) {
+		console.log("Requested to sort:", direction);
 		if (direction=="ascending") currentDirection = "ascending";
 		if (direction=="descending") currentDirection = "descending";
-		if (direction=="toggle") currentDirection = currentDirection == "ascending" ? "descending" : "ascending";
+		if (direction=="toggle") currentDirection = (currentDirection == "ascending") ? "descending" : "ascending";
 		if (currentDirection=="ascending") currentImages.sort(function(a,b) {
 		    var x = a.sourceFilename.toLowerCase();
 		    var y = b.sourceFilename.toLowerCase();
 		    return x < y ? -1 : x > y ? 1 : 0;
 		});
-		else imageMetadata = currentImages.sort(function(a,b) {
+		else currentImages.sort(function(a,b) {
 		    var x = a.sourceFilename.toLowerCase();
 		    var y = b.sourceFilename.toLowerCase();
 		    return x < y ? 1 : x > y ? -1 : 0;
 		});
 		
-		console.log("Sorted: ", direction);
+		console.log("Sorted: ", currentDirection);
 		makeImageTable(currentImages);
 		if (currentDirection == "ascending") {
 			$("#sorticon").removeClass("glyphicon-sort-by-alphabet");
@@ -133,6 +139,7 @@
 		console.log(filteredImages);
 		currentImages = filteredImages;
 		makeImageTable(filteredImages);
+		localStorage.searchString = enteredText;
 	}
 	
 	
