@@ -14,9 +14,86 @@
 	var currentImages;
 	tableFormat = "grid";
 	currentDirection = "ascending";
+	var previewCanvasVisible = false;
+	var previewCanvas;
+	var image;
+	var previewIndex = 0;
+	var width=0
+	var height=0;
 	
 	// Call my start up method after the page has finished loading
 	window.addEventListener("load", pageLoaded, false);
+	
+
+	document.onkeydown = function(e) {
+		e = e?e:window.event;
+		console.log(e.keyCode + " pressed");
+		switch(e.keyCode) {
+			case 80: //'p' key
+				console.log("toggle preview");
+				if (previewCanvasVisible) {
+					$('#imagecanvas').css('visibility', 'hidden');
+					previewCanvasVisible = false;
+					
+				} else {
+					$('#imagecanvas').css('visibility', 'visible');
+					previewCanvasVisible = true;
+					var image = new Image();
+					image.src = currentImages[previewIndex].pngFilename;
+					console.log("Loading", currentImages[previewIndex].sourceFilename);
+					image.onload = function() {
+						context.drawImage(image,10,10,150,180);
+						};
+				}
+				break;
+			case 39: // 'right' key
+				if (!previewCanvasVisible) break;
+				previewIndex++; 
+				if (previewIndex==currentImages.length) previewIndex = 0;
+				var image = new Image();
+				image.src = currentImages[previewIndex].pngFilename;
+				console.log("Loading", currentImages[previewIndex].sourceFilename);
+				image.onload = function() {
+					context.drawImage(image, 0, 0, width, height);
+				};
+				break;
+			case 37: // 'right' key
+				if (!previewCanvasVisible) break;
+				previewIndex--; 
+				if (previewIndex<0) previewIndex = currentImages.length -1;
+				var image = new Image();
+				image.src = currentImages[previewIndex].pngFilename;
+				console.log("Loading", currentImages[previewIndex].sourceFilename);
+				image.onload = function() {
+					context.drawImage(image, 0, 0, width, height);
+				};
+				break;
+			}
+		}
+	
+		//		switch(e.keyCode) {
+		//			case 38: //up arrow
+		
+	function updatePreviewImage(index) {
+		var image = new Image();
+		image.src = currentImages[index].pngFilename;
+		console.log("Loading", currentImages[index].sourceFilename);
+		image.onload = redrawCanvas();
+	}
+	
+	function clearCanvas() {
+			// Clear the canvas area
+			context.fillStyle = "#aaaaaa";
+			context.fillRect(0, 0, width, height);
+			context.fillStyle = "#000000";	
+		}
+		
+	function redrawCanvas() {
+		console.log("Redrawing canvas...");
+		console.log("image src", image.src);
+		clearCanvas();
+		context.drawImage(image, 0, 0);
+	}
 		
 	function pageLoaded() {
 		console.log(allImages);
@@ -37,7 +114,10 @@
 		} else sort("ascending");
 		
 		makeImageTable(currentImages);
-		
+		previewCanvas = document.getElementById("imagecanvas");
+		context = previewCanvas.getContext("2d");
+		width = previewCanvas.width;
+		height = previewCanvas.height;
 	}
 	
 	function sort(direction) {
@@ -100,7 +180,6 @@
 			}
 			break;
 		}
-		
 
 		tableHTML+= "</table>";
 		$("#imagetable").html(tableHTML);
@@ -124,9 +203,7 @@
 				makeImageTable(currentImages);
 			}
 		}
-		localStorage.tableFormat = tableFormat;
-		
-		
+		localStorage.tableFormat = tableFormat;	
 	}
 	
 	function filterImages() {
@@ -139,6 +216,7 @@
 		console.log(filteredImages);
 		currentImages = filteredImages;
 		makeImageTable(filteredImages);
+		$("#numberimages").text(currentImages.length + "/" + allImages.length);
 		localStorage.searchString = enteredText;
 	}
 	
@@ -153,7 +231,9 @@
 	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>&nbsp;
 	<input type="text" size="8" id="filter" oninput="filterImages()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>
 	<br/>
-
+	<canvas id="imagecanvas" width="400" height="400" style="position: absolute; z-index: 1; left: 50px; top: 20px; background-color: grey; font-size: 14px; opacity: 1.0; visibility: hidden;">
+		Fallback content, in case the browser does not support Canvas.
+	</canvas>
 	<span id="imagetable"></span>
 </body>
 
