@@ -28,8 +28,16 @@
 	document.onkeydown = function(e) {
 		e = e?e:window.event;
 		console.log(e.keyCode + " pressed");
+		if ($("#filter").is(':focus')) {
+			// Ignore keypress if the user is typing in the search box
+			return;
+		}
 		switch(e.keyCode) {
-			case 80: //'p' key
+			case 27: // 'esc' key
+				$('#imagecanvas').css('visibility', 'hidden');
+				previewCanvasVisible = false;
+				break;
+			case 80: // 'p' key
 				console.log("toggle preview");
 				if (previewCanvasVisible) {
 					$('#imagecanvas').css('visibility', 'hidden');
@@ -42,7 +50,7 @@
 					image.src = currentImages[previewIndex].pngFilename;
 					console.log("Loading", currentImages[previewIndex].sourceFilename);
 					image.onload = function() {
-						context.drawImage(image,10,10,150,180);
+						context.drawImage(image, 0, 0, width, height);
 						};
 				}
 				break;
