@@ -1,10 +1,11 @@
 <html>
 	<head>
-		 <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+		 <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"> 
+		 <!-- <link rel="stylesheet" href="bootstrap.css"> -->
 		<title>FITS image browser</title>
 	</head>
-
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+<!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script> -->
+<script src="jquery.js"></script>
 
 <script src="imageMetadata.js"></script>
 
@@ -24,6 +25,10 @@
 	// Call my start up method after the page has finished loading
 	window.addEventListener("load", pageLoaded, false);
 	
+	function closePreview(){
+		$('#imagediv').css('visibility', 'hidden');
+		previewCanvasVisible = false;
+	}
 
 	document.onkeydown = function(e) {
 		e = e?e:window.event;
@@ -34,23 +39,25 @@
 		}
 		switch(e.keyCode) {
 			case 27: // 'esc' key
-				$('#imagecanvas').css('visibility', 'hidden');
+				$('#imagediv').css('visibility', 'hidden');
 				previewCanvasVisible = false;
 				break;
 			case 80: // 'p' key
 				console.log("toggle preview");
 				if (previewCanvasVisible) {
-					$('#imagecanvas').css('visibility', 'hidden');
+					$('#imagediv').css('visibility', 'hidden');
 					previewCanvasVisible = false;
 					
 				} else {
-					$('#imagecanvas').css('visibility', 'visible');
+					$('#imagediv').css('visibility', 'visible');
 					previewCanvasVisible = true;
+					previewIndex = 0;
 					var image = new Image();
 					image.src = currentImages[previewIndex].pngFilename;
 					console.log("Loading", currentImages[previewIndex].sourceFilename);
 					image.onload = function() {
 						context.drawImage(image, 0, 0, width, height);
+						updateCaption();
 						};
 				}
 				break;
@@ -63,6 +70,7 @@
 				console.log("Loading", currentImages[previewIndex].sourceFilename);
 				image.onload = function() {
 					context.drawImage(image, 0, 0, width, height);
+					updateCaption();
 				};
 				break;
 			case 37: // 'right' key
@@ -74,6 +82,7 @@
 				console.log("Loading", currentImages[previewIndex].sourceFilename);
 				image.onload = function() {
 					context.drawImage(image, 0, 0, width, height);
+					updateCaption();
 				};
 				break;
 			}
@@ -89,6 +98,10 @@
 		image.onload = redrawCanvas();
 	}
 	
+	function updateCaption() {
+		$("#imagecaption").text(currentImages[previewIndex].sourceFilename);
+	}
+	
 	function clearCanvas() {
 			// Clear the canvas area
 			context.fillStyle = "#aaaaaa";
@@ -101,6 +114,7 @@
 		console.log("image src", image.src);
 		clearCanvas();
 		context.drawImage(image, 0, 0);
+		$("#imagecaption").text(currentImage[previewIndex].sourceFilename);
 	}
 		
 	function pageLoaded() {
@@ -237,11 +251,15 @@
 	<span class="glyphicon glyphicon-th" onclick="switchTable('grid')"></span>&nbsp;
 	<span class="glyphicon glyphicon-th-list" onclick="switchTable('rows')"></span>&nbsp;
 	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>&nbsp;
-	<input type="text" size="8" id="filter" oninput="filterImages()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>
+	<input type="text" size="8" id="filter" oninput="filterImages()" onfocus="closePreview()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>
 	<br/>
-	<canvas id="imagecanvas" width="400" height="400" style="position: absolute; z-index: 1; left: 50px; top: 20px; background-color: grey; font-size: 14px; opacity: 1.0; visibility: hidden;">
+	<div id="imagediv" style="position: absolute; z-index: 1; left: 150px; top: 150px; background-color: white; font-size: 14px; opacity: 1.0; visibility: hidden;">
+	<canvas id="imagecanvas" width="400" height="400">
 		Fallback content, in case the browser does not support Canvas.
 	</canvas>
+	<p align="center"><span id="imagecaption"></span></p>
+</div>
+	
 	<span id="imagetable"></span>
 </body>
 

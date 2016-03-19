@@ -150,7 +150,8 @@ if __name__ == "__main__":
 	if not os.path.exists(imageFolder):
 		os.makedirs(imageFolder)
 	# Copy index.html file from source code folder to the web folder
-	shutil.copy2(installPath + "/index.html", webPath + "/index.html")
+	staticFiles = ["index.html", "jquery.js"]
+	for s in staticFiles: shutil.copy2(installPath + "/" + s, webPath + "/" + s)
 	if args.html: sys.exit()
 	
 	fitsFiles = []
