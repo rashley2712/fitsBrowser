@@ -16,21 +16,28 @@ class imageObject:
 		self.boostedImageExists = False
 	
 	def initFromFITSFile(self, filename, path="."):
-		hdulist = fits.open(path + "/" + filename)
-		if debug: print "Info: ", hdulist.info()
-		card = hdulist[0]
-		for h in hdulist:
-			imageData = h.data
-			if imageData!=None: 
-				xSize, ySize = numpy.shape(imageData)
-				if debug: print("Found image data of dimensions (%d, %d)"%(xSize, ySize))
-				break
+		try:
+			hdulist = fits.open(path + "/" + filename)
+			if debug: print "Info: ", hdulist.info()
+			card = hdulist[0]
+			for h in hdulist:
+				imageData = h.data
+				if imageData!=None: 
+					xSize, ySize = numpy.shape(imageData)
+					if debug: print("Found image data of dimensions (%d, %d)"%(xSize, ySize))
+					break
 	
-		hdulist.close()
+			hdulist.close()
+		except: 
+			print "Could not find any valid FITS data for %s"%filename
+			return False
+		
 		if imageData!=None:
 			self.imageData = imageData
 			self.filename = filename
 			self.size = (xSize, ySize)
+		
+		return True
 		
 	def getBoostedImage(self):
 		""" Returns a normalised array where lo percent of the pixels are 0 and hi percent of the pixels are 255 """
@@ -172,22 +179,19 @@ if __name__ == "__main__":
 
 	for f in FITSFilenames:
 		newImage = imageObject()
-		newImage.initFromFITSFile(f, path=rootPath)
-		if newImage.imageData==None:
-			if debug: print "No image found"
-		else:
-			imageJSON = {}
-			if not skipimages:
-				imageFilename = imageFolder + "/" + changeExtension(newImage.filename, "png")
-				newImage.writeAsPNG(boosted=True, filename=imageFilename)
-				imageJSON['pngFilename'] = "images/" + changeExtension(newImage.filename, "png")
-			imageFilename = imageFolder + "/thumb_" + changeExtension(newImage.filename, "png")
-			newImage.createThumbnail(filename=imageFilename, size=thumbnailSize)
-			imageJSON['thumbnailFilename'] = "images/thumb_" + changeExtension(newImage.filename, "png")
-			imageJSON['sourceFilename'] = newImage.filename
-			imageJSON['xSize'] = newImage.size[0]
-			imageJSON['ySize'] = newImage.size[1]
-			jsonData.append(imageJSON)
+		if (newImage.initFromFITSFile(f, path=rootPath)==False): continue
+		imageJSON = {}
+		if not skipimages:
+			imageFilename = imageFolder + "/" + changeExtension(newImage.filename, "png")
+			newImage.writeAsPNG(boosted=True, filename=imageFilename)
+			imageJSON['pngFilename'] = "images/" + changeExtension(newImage.filename, "png")
+		imageFilename = imageFolder + "/thumb_" + changeExtension(newImage.filename, "png")
+		newImage.createThumbnail(filename=imageFilename, size=thumbnailSize)
+		imageJSON['thumbnailFilename'] = "images/thumb_" + changeExtension(newImage.filename, "png")
+		imageJSON['sourceFilename'] = newImage.filename
+		imageJSON['xSize'] = newImage.size[0]
+		imageJSON['ySize'] = newImage.size[1]
+		jsonData.append(imageJSON)
 			
 	jsFilename = webPath + "/imageMetadata.js"
 	jsFile = open(jsFilename, 'wt')
