@@ -1,2 +1,4 @@
 fitBrowser is a Python utility that produces a folder of web viewable images of all of the FITS files (that contain image data) in a certain directory. 
 
+Basic usage: Run 'fitsBrowser' in a folder where you have a load of FITS files that might contain images. It will inspect each file in the folder and try to find image (bitmap) data. If it finds something, it will generate a PNG version of the image and a thumbnail and also create an 'index.html' file that can be opened with a browser so that you can quickly run through the images. 
+
