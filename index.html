@@ -29,6 +29,25 @@
 		$('#imagediv').css('visibility', 'hidden');
 		previewCanvasVisible = false;
 	}
+	
+	function togglePreview() {
+		if (previewCanvasVisible) {
+			$('#imagediv').css('visibility', 'hidden');
+			previewCanvasVisible = false;
+			
+		} else {
+			$('#imagediv').css('visibility', 'visible');
+			previewCanvasVisible = true;
+			previewIndex = 0;
+			var image = new Image();
+			image.src = currentImages[previewIndex].pngFilename;
+			console.log("Loading", currentImages[previewIndex].sourceFilename);
+			image.onload = function() {
+				context.drawImage(image, 0, 0, width, height);
+				updateCaption();
+			};
+		}
+	}
 
 	document.onkeydown = function(e) {
 		e = e?e:window.event;
@@ -251,7 +270,8 @@
 	<span class="glyphicon glyphicon-th" onclick="switchTable('grid')"></span>&nbsp;
 	<span class="glyphicon glyphicon-th-list" onclick="switchTable('rows')"></span>&nbsp;
 	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>&nbsp;
-	<input type="text" size="8" id="filter" oninput="filterImages()" onfocus="closePreview()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>
+	<input type="text" size="8" id="filter" oninput="filterImages()" onfocus="closePreview()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>&nbsp;
+	<span class="glyphicon glyphicon-picture" onclick="togglePreview()"></span>
 	<br/>
 	<div id="imagediv" style="position: absolute; z-index: 1; left: 150px; top: 150px; background-color: white; font-size: 14px; opacity: 1.0; visibility: hidden;">
 	<canvas id="imagecanvas" width="400" height="400">
