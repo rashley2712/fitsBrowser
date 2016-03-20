@@ -137,7 +137,7 @@ if __name__ == "__main__":
 		"FITSPath": ".",
 		"SearchString": ".*.(fits|fits.gz|fits.fz|fit)",
 		"WebPath": ".",
-		"InstallPath": ".", 
+		"InstallPath": "undefined", 
 		"ThumbnailSize": 128
 	}
 	config.setDefaults(configDefaults)
@@ -148,6 +148,11 @@ if __name__ == "__main__":
 	thumbnailSize = config.assertProperty("ThumbnailSize", args.size)
 	if args.save:
 		config.save()
+	
+	print "Install path:", installPath
+	if installPath == "undefined": 
+		print "Please specify the install path of fitsBrowser. Use the --installpath command option, or specify it in ~/.config/fitsBrowser/fitsBrowser.conf file."
+		sys.exit(-1)
 	
 	search_re = re.compile(searchString)
 	
@@ -160,6 +165,8 @@ if __name__ == "__main__":
 	staticFiles = ["index.html", "jquery.js"]
 	for s in staticFiles: shutil.copy2(installPath + "/" + s, webPath + "/" + s)
 	if args.html: sys.exit()
+	
+	# Check in the FITS path for a file containing 
 	
 	fitsFiles = []
 	# Find all folders in data path
