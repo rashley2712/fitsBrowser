@@ -78,7 +78,7 @@ class imageObject:
 		else:
 			outputFilename = filename
 			
-		print ("Writing PNG file: " + outputFilename) 
+		if debug: print ("Writing PNG file: " + outputFilename) 
 		img.save(outputFilename, "PNG", clobber=True)
 		
 	def createThumbnail(self, filename = None, size=128):
@@ -102,7 +102,7 @@ class imageObject:
 		else:
 			outputFilename = filename
 		
-		print ("Writing thumbnail file: " + outputFilename) 
+		if debug: print ("Writing thumbnail file: " + outputFilename) 
 		img.save(outputFilename, "PNG", clobber=True)
 		
 	
@@ -120,9 +120,17 @@ if __name__ == "__main__":
 	parser.add_argument('--skipallimages', action="store_true", help="Skip creating of the images and thumbnails, just create the metadata. (For debugging purposes)")
 	parser.add_argument('--skipimages', action="store_true", help="Skip creating of the images (but still creates the thumbnails.")
 	parser.add_argument('--html', action="store_true", help="Skip most of the work and just write the HTML pages to the destination folder. (creating of the images (but still creates the thumbnails.")
+	parser.add_argument('-f', '--force', action="store_true", help="Force the re-creation of the PNG images and thumbnails. The default behaviour is to check the output folder to see if the PNG image already exists. If so, it skips the creation step. ")
+	parser.add_argument('--debug', action="store_true", help="Show some debug information.")
+	parser.add_argument('--headerlist', type=str, help='Filename of a text file containing FITS headers that should be displayed on the web page.')
 	
 	args = parser.parse_args()
-	print(args)
+	if args.debug: debug = True
+	if debug: print(args)
+	
+	forceImages = False
+	if args.force: forceImages = True
+	
 	skipthumbnails = False
 	skipimages = False
 	if args.skipallimages:
@@ -184,22 +192,38 @@ if __name__ == "__main__":
 		
 	jsonData = []
 
-	for f in FITSFilenames:
+	for index, f in enumerate(FITSFilenames):
 		newImage = imageObject()
 		if (newImage.initFromFITSFile(f, path=rootPath)==False): continue
 		imageJSON = {}
 		if not skipimages:
 			imageFilename = imageFolder + "/" + changeExtension(newImage.filename, "png")
-			newImage.writeAsPNG(boosted=True, filename=imageFilename)
+			if not os.path.exists(imageFilename) or forceImages:
+				newImage.writeAsPNG(boosted=True, filename=imageFilename)
+			else:
+				if debug: print "Image exists, not overwriting."
 			imageJSON['pngFilename'] = "images/" + changeExtension(newImage.filename, "png")
 		imageFilename = imageFolder + "/thumb_" + changeExtension(newImage.filename, "png")
-		newImage.createThumbnail(filename=imageFilename, size=thumbnailSize)
+		if not os.path.exists(imageFilename) or forceImages:
+			newImage.createThumbnail(filename=imageFilename, size=thumbnailSize)
+		else:
+			if debug: print "Thumbnail exists. Not overwriting."
 		imageJSON['thumbnailFilename'] = "images/thumb_" + changeExtension(newImage.filename, "png")
 		imageJSON['sourceFilename'] = newImage.filename
 		imageJSON['xSize'] = newImage.size[0]
 		imageJSON['ySize'] = newImage.size[1]
 		jsonData.append(imageJSON)
-			
+		progressPercent = float(index+1) / float(len(FITSFilenames)) * 100.
+		if not debug:
+			sys.stdout.write("\rProgress:  %3.1f%%, %d of %d files,"%(progressPercent, index+1, len(FITSFilenames)))
+			sys.stdout.flush()
+		else:
+			print "Progress:  %3.1f%%, %d of %d files,"%(progressPercent, index+1, len(FITSFilenames))
+		
+	if not debug:
+		sys.stdout.write("\n")
+		sys.stdout.flush()	
+	
 	jsFilename = webPath + "/imageMetadata.js"
 	jsFile = open(jsFilename, 'wt')
 	jsFile.write("var allImages= ")

@@ -81,9 +81,11 @@
 				}
 				break;
 			case 39: // 'right' key
-				if (!previewCanvasVisible) break;
+				$('#cell_' + previewIndex).css("background-color", "white");
 				previewIndex++; 
 				if (previewIndex==currentImages.length) previewIndex = 0;
+				$('#cell_' + previewIndex).css("background-color", "lightblue");
+				if (!previewCanvasVisible) break;
 				var image = new Image();
 				image.src = currentImages[previewIndex].pngFilename;
 				console.log("Loading", currentImages[previewIndex].sourceFilename);
@@ -92,10 +94,13 @@
 					updateCaption();
 				};
 				break;
-			case 37: // 'right' key
-				if (!previewCanvasVisible) break;
+
+			case 37: // 'left' key
+				$('#cell_' + previewIndex).css("background-color", "white");
 				previewIndex--; 
 				if (previewIndex<0) previewIndex = currentImages.length -1;
+				$('#cell_' + previewIndex).css("background-color", "lightblue");
+				if (!previewCanvasVisible) break;
 				var image = new Image();
 				image.src = currentImages[previewIndex].pngFilename;
 				console.log("Loading", currentImages[previewIndex].sourceFilename);
@@ -104,6 +109,17 @@
 					updateCaption();
 				};
 				break;
+				
+			case 72: // 'h' pressed for help
+				toggleHelp();
+				break;
+			case 191: // '?' pressed for help
+				toggleHelp();
+				break;
+			
+			default:
+				console.log("Unrecognized key...");
+				
 			}
 		}
 	
@@ -159,6 +175,7 @@
 		context = previewCanvas.getContext("2d");
 		width = previewCanvas.width;
 		height = previewCanvas.height;
+		document.addEventListener('mousemove', mouseMoved);
 	}
 	
 	function sort(direction) {
@@ -198,7 +215,7 @@
 		case "grid":
 			tableHTML+= "<tr>";
 			for (var i=0; i < numberImages; i++) {
-				tableHTML+= "<td align='center'>";
+				tableHTML+= "<td align='center' id='cell_" + i +"'>";
 				if (images[index].pngFilename!=null) tableHTML+= "<a href='" + images[index].pngFilename + "'>"
 				tableHTML+= "<img src='" + images[index].thumbnailFilename + "'>";
 				tableHTML+= "<br/>" + images[index].sourceFilename;
@@ -211,7 +228,7 @@
 			break;
 		case "rows":
 			for (var i=0; i < numberImages; i++) {
-				tableHTML+= "<tr><td>";
+				tableHTML+= "<tr><td id='cell_" + i +"'>";
 				if (images[index].pngFilename!=null) tableHTML+= "<a href='" + images[index].pngFilename + "'>";
 				tableHTML+= "<img align='left' src='" + images[index].thumbnailFilename + "'>";
 				if (images[index].pngFilename!=null) tableHTML+= "</a>";
@@ -224,6 +241,9 @@
 
 		tableHTML+= "</table>";
 		$("#imagetable").html(tableHTML);
+		// previewIndex = 0;
+		$('#cell_' + previewIndex).css("background-color", "lightblue");
+		
 	}
 	
 	function switchTable(format) {
@@ -261,6 +281,42 @@
 		localStorage.searchString = enteredText;
 	}
 	
+	var HelpHTML = "<b>Available commands:</b><br/>";
+		HelpHTML+= "<b>[p]</b> - preview current image. <br/>";
+		HelpHTML+= "<b>[<<]</b> - show previous image. <br/>";
+		HelpHTML+= "<b>[>>]</b> - show next image. <br/>";
+		helpActive = false;
+
+	function toggleHelp() {
+		// This switches on and off the chart help that floats next to the mouse cursor on the chart
+		if (helpActive) {
+			$("#helpoverlay").html("");
+			$('#helpoverlay').css('visibility', 'hidden');
+			helpActive = false;
+		} else {
+			$("#helpoverlay").html(HelpHTML);
+			$('#helpoverlay').css('visibility', 'visible');
+			// Move the box to where the mouse is located
+			$('#helpoverlay').css('left', mousePositionAbsolute.x + 'px');
+			$('#helpoverlay').css('top', mousePositionAbsolute.y + 'px');
+		
+			helpActive = true;
+		}
+	}
+	
+		
+	function mouseMoved(evt) {
+		var x = parseInt(evt.offsetX);
+		var y = height - parseInt(evt.offsetY);
+		if (isNaN(x)) {
+			x = evt.layerX;
+			y = height - evt.layerY;
+		}
+		
+		mousePositionAbsolute = { x: evt.clientX, y: evt.clientY };
+		//console.log(mousePositionAbsolute);
+	}
+		
 	
 </script>
 <body>	
@@ -273,6 +329,7 @@
 	<input type="text" size="8" id="filter" oninput="filterImages()" onfocus="closePreview()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>&nbsp;
 	<span class="glyphicon glyphicon-picture" onclick="togglePreview()"></span>
 	<br/>
+	<div id="helpoverlay" style="position: absolute; z-index: 1; left: 50px; top: 20px; background-color: lightgrey; font-size: 14px; opacity: 0.8;"></div>
 	<div id="imagediv" style="position: absolute; z-index: 1; left: 150px; top: 150px; background-color: white; font-size: 14px; opacity: 1.0; visibility: hidden;">
 	<canvas id="imagecanvas" width="400" height="400">
 		Fallback content, in case the browser does not support Canvas.
