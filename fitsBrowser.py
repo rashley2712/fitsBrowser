@@ -146,7 +146,8 @@ if __name__ == "__main__":
 		"SearchString": ".*.(fits|fits.gz|fits.fz|fit)",
 		"WebPath": ".",
 		"InstallPath": "undefined", 
-		"ThumbnailSize": 128
+		"ThumbnailSize": 128, 
+		"FITSHeadersList": "/home/rashley/fitHeaders.list"
 	}
 	config.setDefaults(configDefaults)
 	rootPath = config.assertProperty("FITSPath", args.datapath)
@@ -154,6 +155,7 @@ if __name__ == "__main__":
 	webPath = config.assertProperty("WebPath", args.webpath)
 	installPath = config.assertProperty("InstallPath", args.installpath)
 	thumbnailSize = config.assertProperty("ThumbnailSize", args.size)
+	fitsHeaderListFile = config.assertProperty("FITSHeadersList", args.headerlist)
 	if args.save:
 		config.save()
 	
@@ -161,6 +163,10 @@ if __name__ == "__main__":
 	if installPath == "undefined": 
 		print "Please specify the install path of fitsBrowser. Use the --installpath command option, or specify it in ~/.config/fitsBrowser/fitsBrowser.conf file."
 		sys.exit(-1)
+	
+	print fitsHeaderListFile	
+	if os.path.exists(fitsHeaderListFile):
+		print "Loading a list file."
 	
 	search_re = re.compile(searchString)
 	
@@ -218,7 +224,7 @@ if __name__ == "__main__":
 			sys.stdout.write("\rProgress:  %3.1f%%, %d of %d files,"%(progressPercent, index+1, len(FITSFilenames)))
 			sys.stdout.flush()
 		else:
-			print "Progress:  %3.1f%%, %d of %d files,"%(progressPercent, index+1, len(FITSFilenames))
+			print "Progress:  %3.1f%%, %d of %d files."%(progressPercent, index+1, len(FITSFilenames))
 		
 	if not debug:
 		sys.stdout.write("\n")

@@ -38,7 +38,6 @@
 		} else {
 			$('#imagediv').css('visibility', 'visible');
 			previewCanvasVisible = true;
-			previewIndex = 0;
 			var image = new Image();
 			image.src = currentImages[previewIndex].pngFilename;
 			console.log("Loading", currentImages[previewIndex].sourceFilename);
@@ -70,7 +69,6 @@
 				} else {
 					$('#imagediv').css('visibility', 'visible');
 					previewCanvasVisible = true;
-					previewIndex = 0;
 					var image = new Image();
 					image.src = currentImages[previewIndex].pngFilename;
 					console.log("Loading", currentImages[previewIndex].sourceFilename);
@@ -278,6 +276,7 @@
 		currentImages = filteredImages;
 		makeImageTable(filteredImages);
 		$("#numberimages").text(currentImages.length + "/" + allImages.length);
+		previewIndex = 0;
 		localStorage.searchString = enteredText;
 	}
 	
@@ -329,8 +328,10 @@
 	<input type="text" size="8" id="filter" oninput="filterImages()" onfocus="closePreview()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>&nbsp;
 	<span class="glyphicon glyphicon-picture" onclick="togglePreview()"></span>
 	<br/>
-	<div id="helpoverlay" style="position: absolute; z-index: 1; left: 50px; top: 20px; background-color: lightgrey; font-size: 14px; opacity: 0.8;"></div>
-	<div id="imagediv" style="position: absolute; z-index: 1; left: 150px; top: 150px; background-color: white; font-size: 14px; opacity: 1.0; visibility: hidden;">
+	
+	<div id="helpoverlay" style="position: fixed; z-index: 1; left: 50px; top: 20px; background-color: lightgrey; font-size: 14px; opacity: 0.8;"></div>
+	
+	<div id="imagediv" style="position: fixed; z-index: 1; left: 150px; top: 150px; background-color: white; font-size: 14px; opacity: 1.0; visibility: hidden;">
 	<canvas id="imagecanvas" width="400" height="400">
 		Fallback content, in case the browser does not support Canvas.
 	</canvas>
