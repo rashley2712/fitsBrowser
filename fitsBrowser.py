@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import collections
 import argparse, sys, os, re, json, shutil
 import configHelper, numpy
 import astropy
@@ -14,6 +15,7 @@ class imageObject:
 		self.size = (0, 0)
 		self.imageData = None
 		self.boostedImageExists = False
+		self.allHeaders = {}
 	
 	def initFromFITSFile(self, filename, path="."):
 		try:
@@ -26,7 +28,10 @@ class imageObject:
 					xSize, ySize = numpy.shape(imageData)
 					if debug: print("Found image data of dimensions (%d, %d)"%(xSize, ySize))
 					break
-	
+			# Grab all of the FITS headers I can find
+			for card in hdulist:
+				for key in card.header.keys():
+					self.allHeaders[key] = card.header[key]
 			hdulist.close()
 		except: 
 			print "Could not find any valid FITS data for %s"%filename
@@ -38,6 +43,11 @@ class imageObject:
 			self.size = (xSize, ySize)
 		
 		return True
+		
+	def getHeader(self, key):
+		if key in self.allHeaders.keys():
+			return { key: self.allHeaders[key] }
+			
 		
 	def getBoostedImage(self):
 		""" Returns a normalised array where lo percent of the pixels are 0 and hi percent of the pixels are 255 """
@@ -104,7 +114,19 @@ class imageObject:
 		
 		if debug: print ("Writing thumbnail file: " + outputFilename) 
 		img.save(outputFilename, "PNG", clobber=True)
-		
+
+def readHeaderListFile(filename):
+	headerListFile = open(filename, 'rt')
+	headers = []
+	for line in headerListFile:
+		line = line.strip()
+		if len(line)==0: continue   # The line is blank
+		if line[0]=='#': continue   # The line is comment
+		headers.append(line)
+	print "Will search for the following FITS headers:", headers
+	headerListFile.close()
+	return headers
+			
 	
 def changeExtension(filename, extension):
 	return os.path.splitext(filename)[0] + "." + extension 
@@ -123,6 +145,7 @@ if __name__ == "__main__":
 	parser.add_argument('-f', '--force', action="store_true", help="Force the re-creation of the PNG images and thumbnails. The default behaviour is to check the output folder to see if the PNG image already exists. If so, it skips the creation step. ")
 	parser.add_argument('--debug', action="store_true", help="Show some debug information.")
 	parser.add_argument('--headerlist', type=str, help='Filename of a text file containing FITS headers that should be displayed on the web page.')
+	parser.add_argument('-n', '--number', type=int, default=0, help='Stop after processing ''--number'' images. Default is process all images.')
 	
 	args = parser.parse_args()
 	if args.debug: debug = True
@@ -131,8 +154,11 @@ if __name__ == "__main__":
 	forceImages = False
 	if args.force: forceImages = True
 	
+	searchForHeaders = False
 	skipthumbnails = False
 	skipimages = False
+	processAllImages = True
+	if args.number>0: 	processAllImages=False
 	if args.skipallimages:
 		skipthumbnails = True
 		skipimages = True
@@ -155,7 +181,7 @@ if __name__ == "__main__":
 	webPath = config.assertProperty("WebPath", args.webpath)
 	installPath = config.assertProperty("InstallPath", args.installpath)
 	thumbnailSize = config.assertProperty("ThumbnailSize", args.size)
-	fitsHeaderListFile = config.assertProperty("FITSHeadersList", args.headerlist)
+	fitsHeaderListFilename = config.assertProperty("FITSHeadersList", args.headerlist)
 	if args.save:
 		config.save()
 	
@@ -164,10 +190,11 @@ if __name__ == "__main__":
 		print "Please specify the install path of fitsBrowser. Use the --installpath command option, or specify it in ~/.config/fitsBrowser/fitsBrowser.conf file."
 		sys.exit(-1)
 	
-	print fitsHeaderListFile	
-	if os.path.exists(fitsHeaderListFile):
+	if os.path.exists(fitsHeaderListFilename):
 		print "Loading a list file."
-	
+		headers = readHeaderListFile(fitsHeaderListFilename)
+		if len(headers) > 0: searchForHeaders = True
+		
 	search_re = re.compile(searchString)
 	
 	# Create sub-folder for the images
@@ -199,6 +226,7 @@ if __name__ == "__main__":
 	jsonData = []
 
 	for index, f in enumerate(FITSFilenames):
+		if not processAllImages and ((index)==args.number): break
 		newImage = imageObject()
 		if (newImage.initFromFITSFile(f, path=rootPath)==False): continue
 		imageJSON = {}
@@ -218,13 +246,26 @@ if __name__ == "__main__":
 		imageJSON['sourceFilename'] = newImage.filename
 		imageJSON['xSize'] = newImage.size[0]
 		imageJSON['ySize'] = newImage.size[1]
+		if searchForHeaders:
+			headerObject = collections.OrderedDict()
+			for h in headers:
+				print h
+				try:
+					headerObject.update(newImage.getHeader(h))
+				except:
+					print "No header data for", h
+			imageJSON['headers'] = headerObject
+			print headerObject
+				
+		
+		
 		jsonData.append(imageJSON)
 		progressPercent = float(index+1) / float(len(FITSFilenames)) * 100.
 		if not debug:
-			sys.stdout.write("\rProgress:  %3.1f%%, %d of %d files,"%(progressPercent, index+1, len(FITSFilenames)))
+			sys.stdout.write("\rProgress:  %3.1f%%, %d of %d files. %s        "%(progressPercent, index+1, len(FITSFilenames), f))
 			sys.stdout.flush()
 		else:
-			print "Progress:  %3.1f%%, %d of %d files."%(progressPercent, index+1, len(FITSFilenames))
+			print "%s \tProgress:  %3.1f%%, %d of %d files."%(f, progressPercent, index+1, len(FITSFilenames))
 		
 	if not debug:
 		sys.stdout.write("\n")
@@ -233,7 +274,7 @@ if __name__ == "__main__":
 	jsFilename = webPath + "/imageMetadata.js"
 	jsFile = open(jsFilename, 'wt')
 	jsFile.write("var allImages= ")
-	jsFile.write(json.dumps(jsonData))
+	jsFile.write(json.dumps(jsonData, sort_keys=False))
 	jsFile.write(";")
 	jsFile.close()
 	

@@ -3,6 +3,12 @@
 		 <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"> 
 		 <!-- <link rel="stylesheet" href="bootstrap.css"> -->
 		<title>FITS image browser</title>
+		<style>
+			.headerdata {
+				font-size: 10pt;
+				}
+		</style>
+
 	</head>
 <!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script> -->
 <script src="jquery.js"></script>
@@ -230,7 +236,12 @@
 				if (images[index].pngFilename!=null) tableHTML+= "<a href='" + images[index].pngFilename + "'>";
 				tableHTML+= "<img align='left' src='" + images[index].thumbnailFilename + "'>";
 				if (images[index].pngFilename!=null) tableHTML+= "</a>";
-				tableHTML+= "<br/>" + images[index].sourceFilename;
+				tableHTML+= "" + images[index].sourceFilename;
+				if (images[index].headers!=null) {
+					tableHTML+="<div class='headerdata'>";
+					for (h in images[index].headers) tableHTML+="<b>" + h + ":</b> " + images[index].headers[h] + "<br/>";
+					tableHTML+="</div>";
+				}
 				tableHTML+= "</td></tr>";
 				index++;
 			}
@@ -296,7 +307,7 @@
 			$("#helpoverlay").html(HelpHTML);
 			$('#helpoverlay').css('visibility', 'visible');
 			// Move the box to where the mouse is located
-			$('#helpoverlay').css('left', mousePositionAbsolute.x + 'px');
+			$('#helpoverlay').css('left', (mousePositionAbsolute.x+20) + 'px');
 			$('#helpoverlay').css('top', mousePositionAbsolute.y + 'px');
 		
 			helpActive = true;
