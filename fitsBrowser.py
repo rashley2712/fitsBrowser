@@ -4,6 +4,8 @@ import collections
 import argparse, sys, os, re, json, shutil
 import configHelper, numpy
 import astropy
+import scipy.ndimage
+import scipy.misc
 from astropy.io import fits
 from PIL import Image,ImageDraw,ImageFont
 
@@ -12,22 +14,26 @@ debug = False
 class imageObject:
 	def __init__(self):
 		self.filename = None
-		self.size = (0, 0)
-		self.imageData = None
 		self.boostedImageExists = False
 		self.allHeaders = {}
-	
+		self.fullImage = {}
+		
 	def initFromFITSFile(self, filename, path="."):
+		images = []
 		try:
 			hdulist = fits.open(path + "/" + filename)
 			if debug: print "Info: ", hdulist.info()
 			card = hdulist[0]
 			for h in hdulist:
-				imageData = h.data
-				if imageData!=None: 
-					xSize, ySize = numpy.shape(imageData)
-					if debug: print("Found image data of dimensions (%d, %d)"%(xSize, ySize))
-					break
+				if type(h.data) is numpy.ndarray:
+					imageObject = {}
+					imageObject['data'] = h.data
+					imageObject['size'] = numpy.shape(h.data)
+					images.append(imageObject)
+					if debug: print("Found image data of dimensions (%d, %d)"%(imageObject['size'][0], imageObject['size'][1]))
+				else:
+					if debug: print "This card has no image data"
+					continue                 # This card has no image data
 			# Grab all of the FITS headers I can find
 			for card in hdulist:
 				for key in card.header.keys():
@@ -37,23 +43,77 @@ class imageObject:
 			print "Could not find any valid FITS data for %s"%filename
 			return False
 		
-		if imageData!=None:
-			self.imageData = imageData
-			self.filename = filename
-			self.size = (xSize, ySize)
-		
+		self.filename = filename
+		if len(images)>1:
+			self.combineImages(images)
+		else:
+			self.fullImage = images[0]
+			self.size = numpy.shape(self.fullImage['data'])
 		return True
 		
 	def getHeader(self, key):
 		if key in self.allHeaders.keys():
 			return { key: self.allHeaders[key] }
 			
+	def combineImages(self, images):
+		if debug: print "Combining %d multiple images."%len(images)
+		for num, i in enumerate(images):
+			if debug: print "Reducing image", num
+			i['data'] = scipy.misc.imresize(self.boostImageData(i['data']), 25)
+			i['size'] = numpy.shape(i['data'])
+			if debug: print "New size:", i['size']
+		totalWidth = 0
+		totalHeight = 0
+		for i in images:
+			totalWidth+= i['size'][1]
+			totalHeight+=i['size'][0]
+		if debug: print "potential width, height", totalWidth, totalHeight 
+		if totalWidth<totalHeight:
+			if debug: print "Stacking horizontally"
+			maxHeight = 0
+			for i in images:
+				if i['size'][0]>maxHeight: maxHeight = i['size'][0]
+			fullImage = numpy.zeros((maxHeight, totalWidth))
+			if debug: print "Full image shape", numpy.shape(fullImage)
+			segWstart = 0
+			segHstart = 0
+			for num, i in enumerate(images):
+				segWidth = i['size'][1] 
+				segHeight = i['size'][0]
+				segWend = segWstart + segWidth
+				segHend = segHstart + segHeight
+				fullImage[segHstart:segHend, segWstart: segWend] = i['data']
+				segWstart+= segWidth
 		
+		
+		self.fullImage['data'] = fullImage
+		self.fullImage['size'] = numpy.shape(fullImage)
+		self.size = numpy.shape(fullImage)
+		if debug: print "Final size:", self.size
+		
+	def boostImageData(self, imageData):
+		""" Returns a normalised array where lo percent of the pixels are 0 and hi percent of the pixels are 255 """
+		hi = 99
+		lo = 20
+		data = imageData
+		max = data.max()
+		dataArray = data.flatten()
+		pHi = numpy.percentile(dataArray, hi)
+		pLo = numpy.percentile(dataArray, lo)
+		range = pHi - pLo
+		scale = range/255
+		data = numpy.clip(data, pLo, pHi)
+		data-= pLo
+		data/=scale
+		return data
+		
+	
 	def getBoostedImage(self):
 		""" Returns a normalised array where lo percent of the pixels are 0 and hi percent of the pixels are 255 """
 		hi = 99
 		lo = 20
-		data = numpy.copy(self.imageData)
+		imageData = self.fullImage['data']
+		data = numpy.copy(self.fullImage['data'])
 		max = data.max()
 		dataArray = data.flatten()
 		pHi = numpy.percentile(dataArray, hi)
@@ -68,7 +128,7 @@ class imageObject:
 		return data
 		
 	def writeAsPNG(self, boosted=False, filename = None):
-		imageData = numpy.copy(self.imageData)
+		imageData = numpy.copy(self.fullImage['data'])
 		if boosted==True:
 			if not self.boostedImageExists: imageData = self.getBoostedImage()
 			else: imageData = self.boostedImage
@@ -226,6 +286,7 @@ if __name__ == "__main__":
 	jsonData = []
 
 	for index, f in enumerate(FITSFilenames):
+		if debug: print "Filename:", f
 		if not processAllImages and ((index)==args.number): break
 		newImage = imageObject()
 		if (newImage.initFromFITSFile(f, path=rootPath)==False): continue
@@ -249,13 +310,11 @@ if __name__ == "__main__":
 		if searchForHeaders:
 			headerObject = collections.OrderedDict()
 			for h in headers:
-				print h
 				try:
 					headerObject.update(newImage.getHeader(h))
 				except:
 					print "No header data for", h
 			imageJSON['headers'] = headerObject
-			print headerObject
 				
 		
 		
