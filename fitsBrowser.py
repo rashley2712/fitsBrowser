@@ -57,33 +57,67 @@ class imageObject:
 			
 	def combineImages(self, images):
 		if debug: print "Combining %d multiple images."%len(images)
+		WFC = False
+		try:
+			instrument = self.allHeaders['INSTRUME']
+			WFC = True
+		except KeyError:
+			pass
+		
+		# Reduce the images sizes by 1/4	
 		for num, i in enumerate(images):
-			if debug: print "Reducing image", num
-			i['data'] = scipy.misc.imresize(self.boostImageData(i['data']), 25)
+			percent = 25
+			if debug: print "Shrinking image %d by %d percent."%(num, percent)
+			i['data'] = scipy.misc.imresize(self.boostImageData(i['data']), percent)
+			# i['data'] = self.boostImageData(i['data'])
 			i['size'] = numpy.shape(i['data'])
 			if debug: print "New size:", i['size']
-		totalWidth = 0
-		totalHeight = 0
-		for i in images:
-			totalWidth+= i['size'][1]
-			totalHeight+=i['size'][0]
-		if debug: print "potential width, height", totalWidth, totalHeight 
-		if totalWidth<totalHeight:
-			if debug: print "Stacking horizontally"
-			maxHeight = 0
+			
+		if WFC:
+			# Custom code to stitch the WFC images together
+			CCD1 = images[0]
+			CCD2 = images[1]
+			CCD3 = images[2]
+			CCD4 = images[3]
+			width = CCD1['size'][1]
+			height = CCD1['size'][0] 
+			fullWidth = width + height
+			fullHeight = 3 * width
+			if debug: print "WFC width", fullWidth, "WFC height", fullHeight
+			fullImage = numpy.zeros((fullHeight, fullWidth))
+			CCD3data = numpy.rot90(CCD3['data'], 3)
+			fullImage[0:width, width:width+height] = CCD3data
+			CCD2data = CCD2['data']
+			fullImage[width:width+height, 0:width] = CCD2data
+			CCD4data = numpy.rot90(CCD4['data'], 3)
+			fullImage[width:2*width, width:width+height] = CCD4data
+			CCD1data = numpy.rot90(CCD1['data'], 3)
+			fullImage[2*width:3*width, width:width+height] = CCD1data
+			fullImage = numpy.rot90(fullImage, 2)
+		else:
+			print "Not WFC!"	
+			totalWidth = 0
+			totalHeight = 0
 			for i in images:
-				if i['size'][0]>maxHeight: maxHeight = i['size'][0]
-			fullImage = numpy.zeros((maxHeight, totalWidth))
-			if debug: print "Full image shape", numpy.shape(fullImage)
-			segWstart = 0
-			segHstart = 0
-			for num, i in enumerate(images):
-				segWidth = i['size'][1] 
-				segHeight = i['size'][0]
-				segWend = segWstart + segWidth
-				segHend = segHstart + segHeight
-				fullImage[segHstart:segHend, segWstart: segWend] = i['data']
-				segWstart+= segWidth
+				totalWidth+= i['size'][1]
+				totalHeight+=i['size'][0]
+			if debug: print "potential width, height", totalWidth, totalHeight 
+			if totalWidth<totalHeight:
+				if debug: print "Stacking horizontally"
+				maxHeight = 0
+				for i in images:
+					if i['size'][0]>maxHeight: maxHeight = i['size'][0]
+				fullImage = numpy.zeros((maxHeight, totalWidth))
+				if debug: print "Full image shape", numpy.shape(fullImage)
+				segWstart = 0
+				segHstart = 0
+				for num, i in enumerate(images):
+					segWidth = i['size'][1] 
+					segHeight = i['size'][0]
+					segWend = segWstart + segWidth
+					segHend = segHstart + segHeight
+					fullImage[segHstart:segHend, segWstart: segWend] = i['data']
+					segWstart+= segWidth
 		
 		
 		self.fullImage['data'] = fullImage
@@ -281,7 +315,7 @@ if __name__ == "__main__":
 			if (m): 
 				FITSFilenames.append(file)
 
-		print ("Found %d fits files in the folder %s"%(len(FITSFilenames), f[0]))
+	print ("Found %d fits files to process."%len(FITSFilenames))
 		
 	jsonData = []
 
