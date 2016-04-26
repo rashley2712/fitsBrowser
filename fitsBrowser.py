@@ -44,6 +44,9 @@ class imageObject:
 			return False
 		
 		self.filename = filename
+		if len(images)==0:
+			if debug: print "Could not find any valid FITS data for %s"%filename
+			return False
 		if len(images)>1:
 			self.combineImages(images)
 		else:

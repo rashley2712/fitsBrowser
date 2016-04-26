@@ -66,6 +66,13 @@
 				$('#imagediv').css('visibility', 'hidden');
 				previewCanvasVisible = false;
 				break;
+			case 13: // 'enter' key
+		        if (previewCanvasVisible) {
+					console.log("Request to open");
+					console.log(currentImages[previewIndex].pngFilename);
+					document.location = currentImages[previewIndex].pngFilename;
+				}
+				break;
 			case 80: // 'p' key
 				console.log("toggle preview");
 				if (previewCanvasVisible) {
