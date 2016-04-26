@@ -23,7 +23,7 @@ class imageObject:
 		try:
 			hdulist = fits.open(path + "/" + filename)
 			if debug: print "Info: ", hdulist.info()
-			card = hdulist[0]
+			# card = hdulist[0]
 			for h in hdulist:
 				if type(h.data) is numpy.ndarray:
 					imageObject = {}
@@ -38,8 +38,13 @@ class imageObject:
 			for card in hdulist:
 				for key in card.header.keys():
 					self.allHeaders[key] = card.header[key]
-			hdulist.close()
+			hdulist.close(output_verify='ignore')
+		except astropy.io.fits.verify.VerifyError as e:
+			
+			print "WARNING: Verification error", e
+			
 		except: 
+			print "Unexpected error:", sys.exc_info()[0]
 			print "Could not find any valid FITS data for %s"%filename
 			return False
 		
