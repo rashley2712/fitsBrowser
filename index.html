@@ -164,8 +164,14 @@
 	}
 		
 	function pageLoaded() {
-		console.log(allImages);
 		$("#numberimages").text(allImages.length);
+		for (i in allImages) {
+			var rawHeaderData = "";
+			for (h in allImages[i].headers) rawHeaderData+= allImages[i].headers[h] + " ";
+			allImages[i].rawHeader = rawHeaderData;
+		}
+		console.log(allImages);
+		
 		currentImages = allImages.slice(0);
 		//imageMetadata.sort(function(a){return imageMetadata.sourceFilename;});
 		// Check for any pre-saved configuration
@@ -288,7 +294,14 @@
 		console.log(enteredText);
 		var filteredImages = [];
 		for (var i in allImages) {
-			if (allImages[i].sourceFilename.indexOf(enteredText)!=-1) filteredImages.push(allImages[i]);
+			if (allImages[i].sourceFilename.indexOf(enteredText)!=-1) {
+				filteredImages.push(allImages[i]);
+				continue;
+			}
+			if (allImages[i].rawHeader.indexOf(enteredText)!=-1) {
+				filteredImages.push(allImages[i]);
+				continue;
+			}
 		}
 		console.log(filteredImages);
 		currentImages = filteredImages;
@@ -333,6 +346,11 @@
 		mousePositionAbsolute = { x: evt.clientX, y: evt.clientY };
 		//console.log(mousePositionAbsolute);
 	}
+	
+	function print() {
+		console.log("About to print the page...");
+		window.print();
+	}
 		
 	
 </script>
@@ -345,6 +363,7 @@
 	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>&nbsp;
 	<input type="text" size="8" id="filter" oninput="filterImages()" onfocus="closePreview()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>&nbsp;
 	<span class="glyphicon glyphicon-picture" onclick="togglePreview()"></span>
+	<span class="glyphicon glyphicon-print" onclick="print()"></span>
 	<br/>
 	
 	<div id="helpoverlay" style="position: fixed; z-index: 1; left: 50px; top: 20px; background-color: lightgrey; font-size: 14px; opacity: 0.8;"></div>

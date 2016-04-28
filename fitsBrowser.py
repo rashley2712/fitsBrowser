@@ -103,7 +103,6 @@ class imageObject:
 			fullImage[2*width:3*width, width:width+height] = CCD1data
 			fullImage = numpy.rot90(fullImage, 2)
 		else:
-			print "Not WFC!"	
 			totalWidth = 0
 			totalHeight = 0
 			for i in images:
