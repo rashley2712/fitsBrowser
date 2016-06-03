@@ -1,4 +1,5 @@
 <html>
+    <meta charset="UTF-8"> 
 	<head>
 		 <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"> 
 		 <!-- <link rel="stylesheet" href="bootstrap.css"> -->
@@ -28,7 +29,7 @@
 	var width=0
 	var height=0;
 	
-	// Call my start up method after the page has finished loading
+	// Call the start up method after the page has finished loading
 	window.addEventListener("load", pageLoaded, false);
 	
 	function closePreview(){
@@ -173,7 +174,14 @@
 		console.log(allImages);
 		
 		currentImages = allImages.slice(0);
-		//imageMetadata.sort(function(a){return imageMetadata.sourceFilename;});
+		
+		allImages.sort(function(a){return allImages.sourceFilename;});
+		
+		console.log(title);
+		if (title!=null) {
+			$("#pageheading").text(title);
+		}
+		
 		// Check for any pre-saved configuration
 		if (localStorage.searchString) {
 			$("#filter").text(localStorage.searchString);
@@ -193,6 +201,8 @@
 		width = previewCanvas.width;
 		height = previewCanvas.height;
 		document.addEventListener('mousemove', mouseMoved);
+		
+		
 	}
 	
 	function sort(direction) {
@@ -356,7 +366,7 @@
 </script>
 <body>	
 	
-	<h1>FITS image browser</h1>
+	<h1 id="pageheading">FITS image browser</h1>
 	<p>Number of images: <strong><span id="numberimages">0</span></strong></p>
 	<span class="glyphicon glyphicon-th" onclick="switchTable('grid')"></span>&nbsp;
 	<span class="glyphicon glyphicon-th-list" onclick="switchTable('rows')"></span>&nbsp;

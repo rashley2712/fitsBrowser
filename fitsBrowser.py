@@ -1,6 +1,5 @@
-#!/usr/bin/env python
-
 import collections
+import datetime
 import argparse, sys, os, re, json, shutil
 import configHelper, numpy
 import astropy
@@ -77,7 +76,6 @@ class imageObject:
 			percent = 25
 			if debug: print "Shrinking image %d by %d percent."%(num, percent)
 			i['data'] = scipy.misc.imresize(self.boostImageData(i['data']), percent)
-			# i['data'] = self.boostImageData(i['data'])
 			i['size'] = numpy.shape(i['data'])
 			if debug: print "New size:", i['size']
 			
@@ -242,11 +240,12 @@ if __name__ == "__main__":
 	parser.add_argument('--save', action="store_true", help='Write the input parameters to the config file as default values.')
 	parser.add_argument('--skipallimages', action="store_true", help="Skip creating of the images and thumbnails, just create the metadata. (For debugging purposes)")
 	parser.add_argument('--skipimages', action="store_true", help="Skip creating of the images (but still creates the thumbnails.")
-	parser.add_argument('--html', action="store_true", help="Skip most of the work and just write the HTML pages to the destination folder. (creating of the images (but still creates the thumbnails.")
+	parser.add_argument('--html', action="store_true", help="Skip most of the work and just write the HTML pages to the destination folder.")
 	parser.add_argument('-f', '--force', action="store_true", help="Force the re-creation of the PNG images and thumbnails. The default behaviour is to check the output folder to see if the PNG image already exists. If so, it skips the creation step. ")
 	parser.add_argument('--debug', action="store_true", help="Show some debug information.")
 	parser.add_argument('--headerlist', type=str, help='Filename of a text file containing FITS headers that should be displayed on the web page.')
 	parser.add_argument('-n', '--number', type=int, default=0, help='Stop after processing ''--number'' images. Default is process all images.')
+	parser.add_argument('-t', '--title', type=str, default="FITS Image browser for {today}", help='Title for the web page. Use {today} as an alias for today\'s date and {folder} for the folder name.')
 	
 	args = parser.parse_args()
 	if args.debug: debug = True
@@ -308,20 +307,23 @@ if __name__ == "__main__":
 	for s in staticFiles: shutil.copy2(installPath + "/" + s, webPath + "/" + s)
 	if args.html: sys.exit()
 	
-	# Check in the FITS path for a file containing 
-	
 	fitsFiles = []
 	# Find all folders in data path
 	folders = os.walk(rootPath)
-	
+	subFolders = []
 	FITSFilenames = []
 	for f in folders:
-		if debug: print("Folder: %s"%f[0])
+		if debug: print("Folder: %s"%os.path.realpath(f[0]))
+		subFolders.append(os.path.realpath(f[0]))
 		for file in f[2]:
 			m = search_re.match(file)
 			if (m): 
 				FITSFilenames.append(file)
 
+	
+	print "subFolders:", subFolders
+	mainFolderName = subFolders[0].split('/')
+	print "Main folder:", mainFolderName[-1]
 	print ("Found %d fits files to process."%len(FITSFilenames))
 		
 	jsonData = []
@@ -371,11 +373,18 @@ if __name__ == "__main__":
 		sys.stdout.write("\n")
 		sys.stdout.flush()	
 	
+	titleString = args.title
+	today = str(datetime.date.today()).replace('-','')
+	print "rootPath", rootPath
+	folder = str(os.path.dirname(os.path.realpath(rootPath)))
+	print "Folder:", folder
+	titleString = titleString.format(today = today, folder = folder)
 	jsFilename = webPath + "/imageMetadata.js"
 	jsFile = open(jsFilename, 'wt')
+	jsFile.write('var title= "%s";\n'%titleString)
 	jsFile.write("var allImages= ")
 	jsFile.write(json.dumps(jsonData, sort_keys=False))
-	jsFile.write(";")
+	jsFile.write(";\n")
 	jsFile.close()
 	
 	
