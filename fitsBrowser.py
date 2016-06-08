@@ -1,6 +1,6 @@
 import collections
 import datetime
-import argparse, sys, os, re, json, shutil
+import argparse, sys, os, re, json, shutil, fcntl
 import configHelper, numpy
 import astropy
 import scipy.ndimage
@@ -9,6 +9,16 @@ from astropy.io import fits
 from PIL import Image,ImageDraw,ImageFont
 
 debug = False
+fh=0
+
+def  run_once():
+     global  fh
+     fh=open(os.path.realpath(__file__),'r')
+     print "Trying to run_once"
+     try:
+         fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
+     except:
+         os._exit(0)
 
 class imageObject:
 	def __init__(self):
@@ -231,7 +241,7 @@ def changeExtension(filename, extension):
 	return os.path.splitext(filename)[0] + "." + extension 
 	
 if __name__ == "__main__":
-	
+	# run_once()
 	parser = argparse.ArgumentParser(description='Makes a web-browser accessible page containing previews and thumbnails of all FITS images in a directory.')
 	parser.add_argument('--datapath', type=str, help='Path where the FITS files are. Default: current directory')
 	parser.add_argument('--webpath', type=str, help='Path to write the web page and images to. Default: current directory')
@@ -245,7 +255,7 @@ if __name__ == "__main__":
 	parser.add_argument('--debug', action="store_true", help="Show some debug information.")
 	parser.add_argument('--headerlist', type=str, help='Filename of a text file containing FITS headers that should be displayed on the web page.')
 	parser.add_argument('-n', '--number', type=int, default=0, help='Stop after processing ''--number'' images. Default is process all images.')
-	parser.add_argument('-t', '--title', type=str, default="FITS Image browser for {today}", help='Title for the web page. Use {today} as an alias for today\'s date and {folder} for the folder name.')
+	parser.add_argument('-t', '--title', type=str, default="FITS Image browser for {today}", help='Title for the web page. Use {today} as an alias for today\'s date and {folder} for the source folder name.')
 	
 	args = parser.parse_args()
 	if args.debug: debug = True
