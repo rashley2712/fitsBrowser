@@ -1,5 +1,6 @@
-import collections
-import datetime
+#!/usr/bin/env python
+
+import datetime, collections
 import argparse, sys, os, re, json, shutil, fcntl
 import configHelper, numpy
 import astropy
@@ -13,12 +14,16 @@ fh=0
 
 def  run_once():
      global  fh
-     fh=open(os.path.realpath(__file__),'r')
-     print "Trying to run_once"
+     fh = open(os.path.realpath(__file__),'r')
+     print os.path.realpath(__file__)
+     print fh
      try:
          fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
-     except:
-         os._exit(0)
+     except IOError as e:
+		 print e
+		 print "Sorry. going to exit"
+		 os._exit(0)
+
 
 class imageObject:
 	def __init__(self):
@@ -241,7 +246,7 @@ def changeExtension(filename, extension):
 	return os.path.splitext(filename)[0] + "." + extension 
 	
 if __name__ == "__main__":
-	# run_once()
+	run_once()
 	parser = argparse.ArgumentParser(description='Makes a web-browser accessible page containing previews and thumbnails of all FITS images in a directory.')
 	parser.add_argument('--datapath', type=str, help='Path where the FITS files are. Default: current directory')
 	parser.add_argument('--webpath', type=str, help='Path to write the web page and images to. Default: current directory')
