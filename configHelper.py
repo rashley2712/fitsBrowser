@@ -99,6 +99,12 @@ class configClass:
 			os.mkdir(fullConfigPath)
 			if self._debug: print("DEBUG: Creating directory %s"%fullConfigPath)
 
+	def __str__(self):
+		retString = ""
+		for key in self.__dict__.keys():
+			if key[0]=='_': continue         # Don't return properties that start with an underscore
+			retString+= str(key) + ": " + str(getattr(self, key)) + "\n"
+		return retString
 
 def getUserHome():
 	homeDir = os.path.expanduser('~')

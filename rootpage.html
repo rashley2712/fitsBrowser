@@ -1,0 +1,391 @@
+<html>
+    <meta charset="UTF-8"> 
+	<head>
+		 <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"> 
+		 <!-- <link rel="stylesheet" href="bootstrap.css"> -->
+		<title>FITS folder archive</title>
+		<style>
+			.headerdata {
+				font-size: 10pt;
+				}
+		</style>
+
+	</head>
+<!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script> -->
+<script src="jquery.js"></script>
+
+<script src="imageMetadata.js"></script>
+
+<script type="text/javascript">	
+	// Global variables
+	var allImages;
+	var currentImages;
+	tableFormat = "grid";
+	currentDirection = "ascending";
+	var previewCanvasVisible = false;
+	var previewCanvas;
+	var image;
+	var previewIndex = 0;
+	var width=0
+	var height=0;
+	
+	// Call the start up method after the page has finished loading
+	window.addEventListener("load", pageLoaded, false);
+	
+	function closePreview(){
+		$('#imagediv').css('visibility', 'hidden');
+		previewCanvasVisible = false;
+	}
+	
+	function togglePreview() {
+		if (previewCanvasVisible) {
+			$('#imagediv').css('visibility', 'hidden');
+			previewCanvasVisible = false;
+			
+		} else {
+			$('#imagediv').css('visibility', 'visible');
+			previewCanvasVisible = true;
+			var image = new Image();
+			image.src = currentImages[previewIndex].pngFilename;
+			console.log("Loading", currentImages[previewIndex].sourceFilename);
+			image.onload = function() {
+				context.drawImage(image, 0, 0, width, height);
+				updateCaption();
+			};
+		}
+	}
+
+	document.onkeydown = function(e) {
+		e = e?e:window.event;
+		console.log(e.keyCode + " pressed");
+		if ($("#filter").is(':focus')) {
+			// Ignore keypress if the user is typing in the search box
+			return;
+		}
+		switch(e.keyCode) {
+			case 27: // 'esc' key
+				$('#imagediv').css('visibility', 'hidden');
+				previewCanvasVisible = false;
+				break;
+			case 13: // 'enter' key
+		        if (previewCanvasVisible) {
+					console.log("Request to open");
+					console.log(currentImages[previewIndex].pngFilename);
+					document.location = currentImages[previewIndex].pngFilename;
+				}
+				break;
+			case 80: // 'p' key
+				console.log("toggle preview");
+				if (previewCanvasVisible) {
+					$('#imagediv').css('visibility', 'hidden');
+					previewCanvasVisible = false;
+					
+				} else {
+					$('#imagediv').css('visibility', 'visible');
+					previewCanvasVisible = true;
+					var image = new Image();
+					image.src = currentImages[previewIndex].pngFilename;
+					console.log("Loading", currentImages[previewIndex].sourceFilename);
+					image.onload = function() {
+						context.drawImage(image, 0, 0, width, height);
+						updateCaption();
+						};
+				}
+				break;
+			case 39: // 'right' key
+				$('#cell_' + previewIndex).css("background-color", "white");
+				previewIndex++; 
+				if (previewIndex==currentImages.length) previewIndex = 0;
+				$('#cell_' + previewIndex).css("background-color", "lightblue");
+				if (!previewCanvasVisible) break;
+				var image = new Image();
+				image.src = currentImages[previewIndex].pngFilename;
+				console.log("Loading", currentImages[previewIndex].sourceFilename);
+				image.onload = function() {
+					context.drawImage(image, 0, 0, width, height);
+					updateCaption();
+				};
+				break;
+
+			case 37: // 'left' key
+				$('#cell_' + previewIndex).css("background-color", "white");
+				previewIndex--; 
+				if (previewIndex<0) previewIndex = currentImages.length -1;
+				$('#cell_' + previewIndex).css("background-color", "lightblue");
+				if (!previewCanvasVisible) break;
+				var image = new Image();
+				image.src = currentImages[previewIndex].pngFilename;
+				console.log("Loading", currentImages[previewIndex].sourceFilename);
+				image.onload = function() {
+					context.drawImage(image, 0, 0, width, height);
+					updateCaption();
+				};
+				break;
+				
+			case 72: // 'h' pressed for help
+				toggleHelp();
+				break;
+			case 191: // '?' pressed for help
+				toggleHelp();
+				break;
+			
+			default:
+				console.log("Unrecognized key...");
+				
+			}
+		}
+	
+		//		switch(e.keyCode) {
+		//			case 38: //up arrow
+		
+	function updatePreviewImage(index) {
+		var image = new Image();
+		image.src = currentImages[index].pngFilename;
+		console.log("Loading", currentImages[index].sourceFilename);
+		image.onload = redrawCanvas();
+	}
+	
+	function updateCaption() {
+		$("#imagecaption").text(currentImages[previewIndex].sourceFilename);
+	}
+	
+	function clearCanvas() {
+			// Clear the canvas area
+			context.fillStyle = "#aaaaaa";
+			context.fillRect(0, 0, width, height);
+			context.fillStyle = "#000000";	
+		}
+		
+	function redrawCanvas() {
+		console.log("Redrawing canvas...");
+		console.log("image src", image.src);
+		clearCanvas();
+		context.drawImage(image, 0, 0);
+		$("#imagecaption").text(currentImage[previewIndex].sourceFilename);
+	}
+		
+	function pageLoaded() {
+		$("#numberimages").text(allImages.length);
+		for (i in allImages) {
+			var rawHeaderData = "";
+			for (h in allImages[i].headers) rawHeaderData+= allImages[i].headers[h] + " ";
+			allImages[i].rawHeader = rawHeaderData;
+		}
+		console.log(allImages);
+		
+		currentImages = allImages.slice(0);
+		
+		allImages.sort(function(a){return allImages.sourceFilename;});
+		
+		console.log(title);
+		if (title!=null) {
+			$("#pageheading").text(title);
+		}
+		
+		// Check for any pre-saved configuration
+		if (localStorage.searchString) {
+			$("#filter").text(localStorage.searchString);
+			filterImages();
+		}
+		if (localStorage.tableFormat) {
+			tableFormat = localStorage.tableFormat;
+		}
+		if (localStorage.sortOrder) {
+			sort(localStorage.sortOrder);
+			console.log("retrieved sort order", localStorage.sortOrder);
+		} else sort("ascending");
+		
+		makeImageTable(currentImages);
+		previewCanvas = document.getElementById("imagecanvas");
+		context = previewCanvas.getContext("2d");
+		width = previewCanvas.width;
+		height = previewCanvas.height;
+		document.addEventListener('mousemove', mouseMoved);
+		
+		
+	}
+	
+	function sort(direction) {
+		console.log("Requested to sort:", direction);
+		if (direction=="ascending") currentDirection = "ascending";
+		if (direction=="descending") currentDirection = "descending";
+		if (direction=="toggle") currentDirection = (currentDirection == "ascending") ? "descending" : "ascending";
+		if (currentDirection=="ascending") currentImages.sort(function(a,b) {
+		    var x = a.sourceFilename.toLowerCase();
+		    var y = b.sourceFilename.toLowerCase();
+		    return x < y ? -1 : x > y ? 1 : 0;
+		});
+		else currentImages.sort(function(a,b) {
+		    var x = a.sourceFilename.toLowerCase();
+		    var y = b.sourceFilename.toLowerCase();
+		    return x < y ? 1 : x > y ? -1 : 0;
+		});
+		
+		console.log("Sorted: ", currentDirection);
+		makeImageTable(currentImages);
+		if (currentDirection == "ascending") {
+			$("#sorticon").removeClass("glyphicon-sort-by-alphabet");
+			$("#sorticon").addClass("glyphicon-sort-by-alphabet-alt");
+		} else {
+			$("#sorticon").addClass("glyphicon-sort-by-alphabet");
+			$("#sorticon").removeClass("glyphicon-sort-by-alphabet-alt");
+		}
+		localStorage.sortOrder = currentDirection;
+	}
+	
+	function makeImageTable(images) {
+		var index = 0;
+		var maxWidth = 4;
+		tableHTML = "<table border='1' width='100%'>";
+		var numberImages = images.length;
+		switch(tableFormat) {
+		case "grid":
+			tableHTML+= "<tr>";
+			for (var i=0; i < numberImages; i++) {
+				tableHTML+= "<td align='center' id='cell_" + i +"'>";
+				if (images[index].pngFilename!=null) tableHTML+= "<a href='" + images[index].pngFilename + "'>"
+				tableHTML+= "<img src='" + images[index].thumbnailFilename + "'>";
+				tableHTML+= "<br/>" + images[index].sourceFilename;
+				if (images[index].pngFilename!=null) tableHTML+= "</a>";
+				tableHTML+= "</td>";
+				index++;
+				if ((index % maxWidth) == 0) tableHTML+= "</tr></tr>";
+			}
+			tableHTML+= "</tr>";
+			break;
+		case "rows":
+			for (var i=0; i < numberImages; i++) {
+				tableHTML+= "<tr><td id='cell_" + i +"'>";
+				if (images[index].pngFilename!=null) tableHTML+= "<a href='" + images[index].pngFilename + "'>";
+				tableHTML+= "<img align='left' src='" + images[index].thumbnailFilename + "'>";
+				if (images[index].pngFilename!=null) tableHTML+= "</a>";
+				tableHTML+= "" + images[index].sourceFilename;
+				if (images[index].headers!=null) {
+					tableHTML+="<div class='headerdata'>";
+					for (h in images[index].headers) tableHTML+="<b>" + h + ":</b> " + images[index].headers[h] + "<br/>";
+					tableHTML+="</div>";
+				}
+				tableHTML+= "</td></tr>";
+				index++;
+			}
+			break;
+		}
+
+		tableHTML+= "</table>";
+		$("#imagetable").html(tableHTML);
+		// previewIndex = 0;
+		$('#cell_' + previewIndex).css("background-color", "lightblue");
+		
+	}
+	
+	function switchTable(format) {
+		if (format=="grid") {
+			console.log("Grid table requested...");
+			if (tableFormat=="grid") {
+				console.log("...ignoring it.");
+			} else {
+				tableFormat = "grid";
+				makeImageTable(currentImages);
+			}
+		}
+		if (format=="rows") {
+			console.log("Row table requested...");
+			if (tableFormat=="rows") console.log("...ignoring it.");
+			else {
+				tableFormat = "rows";
+				makeImageTable(currentImages);
+			}
+		}
+		localStorage.tableFormat = tableFormat;	
+	}
+	
+	function filterImages() {
+		enteredText = document.getElementById("filter").value;
+		console.log(enteredText);
+		var filteredImages = [];
+		for (var i in allImages) {
+			if (allImages[i].sourceFilename.indexOf(enteredText)!=-1) {
+				filteredImages.push(allImages[i]);
+				continue;
+			}
+			if (allImages[i].rawHeader.indexOf(enteredText)!=-1) {
+				filteredImages.push(allImages[i]);
+				continue;
+			}
+		}
+		console.log(filteredImages);
+		currentImages = filteredImages;
+		makeImageTable(filteredImages);
+		$("#numberimages").text(currentImages.length + "/" + allImages.length);
+		previewIndex = 0;
+		localStorage.searchString = enteredText;
+	}
+	
+	var HelpHTML = "<b>Available commands:</b><br/>";
+		HelpHTML+= "<b>[p]</b> - preview current image. <br/>";
+		HelpHTML+= "<b>[<<]</b> - show previous image. <br/>";
+		HelpHTML+= "<b>[>>]</b> - show next image. <br/>";
+		helpActive = false;
+
+	function toggleHelp() {
+		// This switches on and off the chart help that floats next to the mouse cursor on the chart
+		if (helpActive) {
+			$("#helpoverlay").html("");
+			$('#helpoverlay').css('visibility', 'hidden');
+			helpActive = false;
+		} else {
+			$("#helpoverlay").html(HelpHTML);
+			$('#helpoverlay').css('visibility', 'visible');
+			// Move the box to where the mouse is located
+			$('#helpoverlay').css('left', (mousePositionAbsolute.x+20) + 'px');
+			$('#helpoverlay').css('top', mousePositionAbsolute.y + 'px');
+		
+			helpActive = true;
+		}
+	}
+	
+		
+	function mouseMoved(evt) {
+		var x = parseInt(evt.offsetX);
+		var y = height - parseInt(evt.offsetY);
+		if (isNaN(x)) {
+			x = evt.layerX;
+			y = height - evt.layerY;
+		}
+		
+		mousePositionAbsolute = { x: evt.clientX, y: evt.clientY };
+		//console.log(mousePositionAbsolute);
+	}
+	
+	function print() {
+		console.log("About to print the page...");
+		// window.print();
+	}
+		
+	
+</script>
+<body>	
+	
+	<h1 id="pageheading">FITS folder archive</h1>
+	<p>Number of images: <strong><span id="numberimages">0</span></strong></p>
+	<span class="glyphicon glyphicon-th" onclick="switchTable('grid')"></span>&nbsp;
+	<span class="glyphicon glyphicon-th-list" onclick="switchTable('rows')"></span>&nbsp;
+	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>&nbsp;
+	<input type="text" size="8" id="filter" oninput="filterImages()" onfocus="closePreview()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>&nbsp;
+	<span class="glyphicon glyphicon-picture" onclick="togglePreview()"></span>
+	<span class="glyphicon glyphicon-print" onclick="print()"></span>
+	<br/>
+	
+	<div id="helpoverlay" style="position: fixed; z-index: 1; left: 50px; top: 20px; background-color: lightgrey; font-size: 14px; opacity: 0.8;"></div>
+	
+	<div id="imagediv" style="position: fixed; z-index: 1; left: 150px; top: 150px; background-color: white; font-size: 14px; opacity: 1.0; visibility: hidden;">
+	<canvas id="imagecanvas" width="400" height="400">
+		Fallback content, in case the browser does not support Canvas.
+	</canvas>
+	<p align="center"><span id="imagecaption"></span></p>
+</div>
+	
+	<span id="imagetable"></span>
+</body>
+
+</html>
