@@ -6,6 +6,7 @@ import configHelper, numpy
 import astropy
 import scipy.ndimage
 import scipy.misc
+import fitsClasses
 from astropy.io import fits
 from PIL import Image,ImageDraw,ImageFont
 
@@ -15,219 +16,11 @@ fh=0
 def  run_once():
      global  fh
      fh = open(os.path.realpath(__file__),'r')
-     print os.path.realpath(__file__)
-     print fh
      try:
          fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
      except IOError as e:
-		 print e
-		 print "Sorry. going to exit"
+		 print "Sorry. I think I might already be running, so I am going to exit. Please look for stray processes."
 		 os._exit(0)
-
-
-class imageObject:
-	def __init__(self):
-		self.filename = None
-		self.boostedImageExists = False
-		self.allHeaders = {}
-		self.fullImage = {}
-		
-	def initFromFITSFile(self, filename, path="."):
-		images = []
-		try:
-			hdulist = fits.open(path + "/" + filename)
-			if debug: print "Info: ", hdulist.info()
-			# card = hdulist[0]
-			for h in hdulist:
-				if type(h.data) is numpy.ndarray:
-					imageObject = {}
-					imageObject['data'] = h.data
-					imageObject['size'] = numpy.shape(h.data)
-					images.append(imageObject)
-					if debug: print("Found image data of dimensions (%d, %d)"%(imageObject['size'][0], imageObject['size'][1]))
-				else:
-					if debug: print "This card has no image data"
-					continue                 # This card has no image data
-			# Grab all of the FITS headers I can find
-			for card in hdulist:
-				for key in card.header.keys():
-					self.allHeaders[key] = card.header[key]
-			hdulist.close(output_verify='ignore')
-		except astropy.io.fits.verify.VerifyError as e:
-			
-			print "WARNING: Verification error", e
-			
-		except: 
-			print "Unexpected error:", sys.exc_info()[0]
-			print "Could not find any valid FITS data for %s"%filename
-			return False
-		
-		self.filename = filename
-		if len(images)==0:
-			if debug: print "Could not find any valid FITS data for %s"%filename
-			return False
-		if len(images)>1:
-			self.combineImages(images)
-		else:
-			self.fullImage = images[0]
-			self.size = numpy.shape(self.fullImage['data'])
-		return True
-		
-	def getHeader(self, key):
-		if key in self.allHeaders.keys():
-			return { key: self.allHeaders[key] }
-			
-	def combineImages(self, images):
-		if debug: print "Combining %d multiple images."%len(images)
-		WFC = False
-		try:
-			instrument = self.allHeaders['INSTRUME']
-			WFC = True
-		except KeyError:
-			pass
-		
-		# Reduce the images sizes by 1/4	
-		for num, i in enumerate(images):
-			percent = 25
-			if debug: print "Shrinking image %d by %d percent."%(num, percent)
-			i['data'] = scipy.misc.imresize(self.boostImageData(i['data']), percent)
-			i['size'] = numpy.shape(i['data'])
-			if debug: print "New size:", i['size']
-			
-		if WFC:
-			# Custom code to stitch the WFC images together
-			CCD1 = images[0]
-			CCD2 = images[1]
-			CCD3 = images[2]
-			CCD4 = images[3]
-			width = CCD1['size'][1]
-			height = CCD1['size'][0] 
-			fullWidth = width + height
-			fullHeight = 3 * width
-			if debug: print "WFC width", fullWidth, "WFC height", fullHeight
-			fullImage = numpy.zeros((fullHeight, fullWidth))
-			CCD3data = numpy.rot90(CCD3['data'], 3)
-			fullImage[0:width, width:width+height] = CCD3data
-			CCD2data = CCD2['data']
-			fullImage[width:width+height, 0:width] = CCD2data
-			CCD4data = numpy.rot90(CCD4['data'], 3)
-			fullImage[width:2*width, width:width+height] = CCD4data
-			CCD1data = numpy.rot90(CCD1['data'], 3)
-			fullImage[2*width:3*width, width:width+height] = CCD1data
-			fullImage = numpy.rot90(fullImage, 2)
-		else:
-			totalWidth = 0
-			totalHeight = 0
-			for i in images:
-				totalWidth+= i['size'][1]
-				totalHeight+=i['size'][0]
-			if debug: print "potential width, height", totalWidth, totalHeight 
-			if totalWidth<totalHeight:
-				if debug: print "Stacking horizontally"
-				maxHeight = 0
-				for i in images:
-					if i['size'][0]>maxHeight: maxHeight = i['size'][0]
-				fullImage = numpy.zeros((maxHeight, totalWidth))
-				if debug: print "Full image shape", numpy.shape(fullImage)
-				segWstart = 0
-				segHstart = 0
-				for num, i in enumerate(images):
-					segWidth = i['size'][1] 
-					segHeight = i['size'][0]
-					segWend = segWstart + segWidth
-					segHend = segHstart + segHeight
-					fullImage[segHstart:segHend, segWstart: segWend] = i['data']
-					segWstart+= segWidth
-		
-		
-		self.fullImage['data'] = fullImage
-		self.fullImage['size'] = numpy.shape(fullImage)
-		self.size = numpy.shape(fullImage)
-		if debug: print "Final size:", self.size
-		
-	def boostImageData(self, imageData):
-		""" Returns a normalised array where lo percent of the pixels are 0 and hi percent of the pixels are 255 """
-		hi = 99
-		lo = 20
-		data = imageData
-		max = data.max()
-		dataArray = data.flatten()
-		pHi = numpy.percentile(dataArray, hi)
-		pLo = numpy.percentile(dataArray, lo)
-		range = pHi - pLo
-		scale = range/255
-		data = numpy.clip(data, pLo, pHi)
-		data-= pLo
-		data/=scale
-		return data
-		
-	
-	def getBoostedImage(self):
-		""" Returns a normalised array where lo percent of the pixels are 0 and hi percent of the pixels are 255 """
-		hi = 99
-		lo = 20
-		imageData = self.fullImage['data']
-		data = numpy.copy(self.fullImage['data'])
-		max = data.max()
-		dataArray = data.flatten()
-		pHi = numpy.percentile(dataArray, hi)
-		pLo = numpy.percentile(dataArray, lo)
-		range = pHi - pLo
-		scale = range/255
-		data = numpy.clip(data, pLo, pHi)
-		data-= pLo
-		data/=scale
-		self.boostedImage = data
-		self.boostedImageExists = True
-		return data
-		
-	def writeAsPNG(self, boosted=False, filename = None):
-		imageData = numpy.copy(self.fullImage['data'])
-		if boosted==True:
-			if not self.boostedImageExists: imageData = self.getBoostedImage()
-			else: imageData = self.boostedImage
-		imgData = numpy.rot90(imageData, 3)
-		imgSize = numpy.shape(imgData)
-		imgLength = imgSize[0] * imgSize[1]
-		testData = numpy.reshape(imgData, imgLength, order="F")
-		img = Image.new("L", imgSize)
-		palette = []
-		for i in range(256):
-			palette.extend((i, i, i)) # grey scale
-			img.putpalette(palette)
-		img.putdata(testData)
-		
-		if filename==None:
-			outputFilename = changeExtension(self.filename, "png")
-		else:
-			outputFilename = filename
-			
-		if debug: print ("Writing PNG file: " + outputFilename) 
-		img.save(outputFilename, "PNG", clobber=True)
-		
-	def createThumbnail(self, filename = None, size=128):
-		if not self.boostedImageExists: imageData = self.getBoostedImage()
-		else: imageData = self.boostedImage
-		
-		imgData = numpy.rot90(imageData, 3)
-		imgSize = numpy.shape(imgData)
-		imgLength = imgSize[0] * imgSize[1]
-		testData = numpy.reshape(imgData, imgLength, order="F")
-		img = Image.new("L", imgSize)
-		palette = []
-		for i in range(256):
-			palette.extend((i, i, i)) # grey scale
-			img.putpalette(palette)
-		img.putdata(testData)
-		thumbnailSize = (size, size)
-		img.thumbnail(thumbnailSize, Image.ANTIALIAS)
-		if filename==None:
-			outputFilename = "thumb_" + changeExtension(self.filename, "png")
-		else:
-			outputFilename = filename
-		
-		if debug: print ("Writing thumbnail file: " + outputFilename) 
-		img.save(outputFilename, "PNG", clobber=True)
 
 def readHeaderListFile(filename):
 	headerListFile = open(filename, 'rt')
@@ -240,6 +33,15 @@ def readHeaderListFile(filename):
 	print "Will search for the following FITS headers:", headers
 	headerListFile.close()
 	return headers
+	
+def writeJSONFile(filename, titleString, jsonData):
+	jsFile = open(filename, 'wt')
+	jsFile.write('var title= "%s";\n'%titleString)
+	jsFile.write("var allImages= ")
+	jsFile.write(json.dumps(jsonData, sort_keys=False))
+	jsFile.write(";\n")
+	jsFile.close()
+	
 			
 	
 def changeExtension(filename, extension):
@@ -306,7 +108,7 @@ if __name__ == "__main__":
 		sys.exit(-1)
 	
 	if os.path.exists(fitsHeaderListFilename):
-		print "Loading a list file."
+		print "Loading a header list file:", fitsHeaderListFilename
 		headers = readHeaderListFile(fitsHeaderListFilename)
 		if len(headers) > 0: searchForHeaders = True
 		
@@ -339,14 +141,47 @@ if __name__ == "__main__":
 	print "subFolders:", subFolders
 	mainFolderName = subFolders[0].split('/')
 	print "Main folder:", mainFolderName[-1]
-	print ("Found %d fits files to process."%len(FITSFilenames))
-		
-	jsonData = []
-
+	print ("Found %d fits files in the folder."%len(FITSFilenames))
+	
+	# Now check in the destination folder for pre-existing data
+	oldJSONdata = []
+	if os.path.exists(webPath + '/imageMetadata.js'):
+		jsFile = open(webPath + '/imageMetadata.js')
+		for line in jsFile:
+			if "var allImages" in line:
+				jsData = line[len("var allImages= "):-2]
+				oldJSONdata = json.loads(jsData)
+				
+	newFITSFilenames = []
+	for f in FITSFilenames:
+		newFile = True
+		for j in oldJSONdata:
+			if j['sourceFilename'] == f:
+				if debug: print "Found file already....", f
+				newFile = False
+				break
+		if newFile:
+			newFITSFilenames.append(f)
+			
+	print "%d are new files."%len(newFITSFilenames)
+	FITSFilenames = newFITSFilenames	
+	jsonData = oldJSONdata
+	
+	# Prepare some of the JSON objects for writing
+	titleString = args.title
+	today = str(datetime.date.today()).replace('-','')
+	folder = str(os.path.dirname(os.path.realpath(rootPath)))
+	titleString = titleString.format(today = today, folder = folder)
+	jsFilename = webPath + "/imageMetadata.js"
+	
+	
+	writeJSONFile(jsFilename, titleString, jsonData)
+	
+	
 	for index, f in enumerate(FITSFilenames):
 		if debug: print "Filename:", f
 		if not processAllImages and ((index)==args.number): break
-		newImage = imageObject()
+		newImage = fitsClasses.fitsObject(debug=debug)
 		if (newImage.initFromFITSFile(f, path=rootPath)==False): continue
 		imageJSON = {}
 		if not skipimages:
@@ -377,6 +212,9 @@ if __name__ == "__main__":
 		
 		
 		jsonData.append(imageJSON)
+		writeJSONFile(jsFilename, titleString, jsonData)
+	
+		
 		progressPercent = float(index+1) / float(len(FITSFilenames)) * 100.
 		if not debug:
 			sys.stdout.write("\rProgress:  %3.1f%%, %d of %d files. %s        "%(progressPercent, index+1, len(FITSFilenames), f))
@@ -388,19 +226,6 @@ if __name__ == "__main__":
 		sys.stdout.write("\n")
 		sys.stdout.flush()	
 	
-	titleString = args.title
-	today = str(datetime.date.today()).replace('-','')
-	print "rootPath", rootPath
-	folder = str(os.path.dirname(os.path.realpath(rootPath)))
-	print "Folder:", folder
-	titleString = titleString.format(today = today, folder = folder)
-	jsFilename = webPath + "/imageMetadata.js"
-	jsFile = open(jsFilename, 'wt')
-	jsFile.write('var title= "%s";\n'%titleString)
-	jsFile.write("var allImages= ")
-	jsFile.write(json.dumps(jsonData, sort_keys=False))
-	jsFile.write(";\n")
-	jsFile.close()
 	
 	
 	print ""

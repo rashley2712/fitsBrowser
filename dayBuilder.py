@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, sys, os, re, json, shutil, datetime, subprocess
+import argparse, sys, os, re, json, shutil, datetime, subprocess, fcntl
 import configHelper, numpy
 
 def debug(output):
@@ -8,7 +8,20 @@ def debug(output):
 	if not debugLevel: return
 	print(str(output))
 	
+fh=0
+
+def  run_once():
+     global  fh
+     fh = open(os.path.realpath(__file__),'r')
+     try:
+         fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
+     except IOError as e:
+		 print "Sorry. I think I might already be running, so I am going to exit. Please look for stray processes."
+		 os._exit(0)
+
+	
 if __name__ == "__main__":
+	run_once()
 	debugLevel = 0
 	parser = argparse.ArgumentParser(description='Builds or updates a root web folder containing fitsBrowser sub-folders for each day..')
 	parser.add_argument('--datapath', type=str, help='Path where the FITS files are. Default: current directory')
@@ -24,6 +37,7 @@ if __name__ == "__main__":
 	config = configHelper.configClass("fitsBrowser")
 	webPath = config.assertProperty("WebPath", args.webpath)
 	installPath = config.assertProperty("InstallPath", args.installpath)
+	dataPath = config.assertProperty("DataPath", args.datapath)
 	
 	debug(config)
 	
@@ -47,14 +61,15 @@ if __name__ == "__main__":
 		dateFolder = str(datetime.date.today() - datetime.timedelta(days=1)).replace('-', '')
 	else:
 		dateFolder = args.date
-	debug("Looking in sub folder: %s"%dateFolder)
 	
 	outputFolder = webPath + "/" + dateFolder
+	dataFolder = dataPath + "/" + dateFolder
+	debug("Looking for FITS files in folder: %s"%dataFolder)
 	debug("Writing to: %s"%outputFolder)
 	
 	fitsBrowserCommand = [installPath + "/fitsBrowser.py"]
 	fitsBrowserCommand.append('--datapath')
-	fitsBrowserCommand.append(dateFolder)
+	fitsBrowserCommand.append(dataFolder)
 	fitsBrowserCommand.append('--webpath')
 	fitsBrowserCommand.append(outputFolder)
 	fitsBrowserCommand.append('--title')
