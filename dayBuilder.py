@@ -41,10 +41,27 @@ if __name__ == "__main__":
 	
 	debug(config)
 	
-	# First check to see if the webpath already exists
-	if not os.path.exists(args.webpath):
-		debug("Creating folder %s"%args.webpath)
-		os.makedirs(args.webpath)
+	# Now run 'fitBrowser'
+	if args.date == "{today}":
+		dateFolder = str(datetime.date.today()).replace('-','')
+	elif args.date == "{yesterday}":
+		dateFolder = str(datetime.date.today() - datetime.timedelta(days=1)).replace('-', '')
+	else:
+		dateFolder = args.date
+	dataFolder = dataPath + "/" + dateFolder
+	
+	# First, check if the source data is there
+	if not os.path.exists(dataPath):
+		print "The folder for the source data %s could not be found. Exiting."%dataPath
+		sys.exit()
+	if not os.path.exists(dataFolder):
+		print "The folder for the source data %s could not be found. Exiting."%dataFolder
+		sys.exit()
+	
+	# Second, check to see if the webpath already exists
+	if not os.path.exists(webPath):
+		debug("Creating folder %s"%webPath)
+		os.makedirs(webPath)
 		
 		
 	# Copy the needed files into the destination folder
@@ -54,16 +71,8 @@ if __name__ == "__main__":
 	# Exit now if '--copyonly is specified
 	if args.copyonly: sys.exit()
 	
-	# Now run 'fitBrowser'
-	if args.date == "{today}":
-		dateFolder = str(datetime.date.today()).replace('-','')
-	elif args.date == "{yesterday}":
-		dateFolder = str(datetime.date.today() - datetime.timedelta(days=1)).replace('-', '')
-	else:
-		dateFolder = args.date
 	
 	outputFolder = webPath + "/" + dateFolder
-	dataFolder = dataPath + "/" + dateFolder
 	debug("Looking for FITS files in folder: %s"%dataFolder)
 	debug("Writing to: %s"%outputFolder)
 	
