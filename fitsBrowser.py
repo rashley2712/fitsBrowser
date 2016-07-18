@@ -15,7 +15,14 @@ fh=0
 
 def  run_once():
      global  fh
-     fh = open(os.path.realpath(__file__),'r')
+     lockFilename = "/tmp/fitsBrowser.lock"
+     # first create a lock file if it doesn't already exist
+     if not os.path.exists(lockFilename):
+		 lockFile = open(lockFilename, 'wt')
+		 lockFile.write("Lock file for fitsBrowser.py\n")
+		 lockFile.close()
+		 
+     fh = open(lockFilename,'r')
      try:
          fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
      except IOError as e:

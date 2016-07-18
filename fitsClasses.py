@@ -21,6 +21,9 @@ class fitsObject:
 					imageObject = {}
 					imageObject['data'] = h.data
 					imageObject['size'] = numpy.shape(h.data)
+					if len(imageObject['size'])<2:
+						if self.debug: print "Data is one-dimensional. Not valid."
+						return False
 					images.append(imageObject)
 					if self.debug: print("Found image data of dimensions (%d, %d)"%(imageObject['size'][0], imageObject['size'][1]))
 				else:
@@ -61,6 +64,7 @@ class fitsObject:
 		WFC = False
 		try:
 			instrument = self.allHeaders['INSTRUME']
+			print "Instrument detected:", instrument
 			WFC = True
 		except KeyError:
 			pass

@@ -12,11 +12,20 @@ fh=0
 
 def  run_once():
      global  fh
-     fh = open(os.path.realpath(__file__),'r')
+     lockFilename = "/tmp/dayBuilder.lock"
+     # first create a lock file if it doesn't already exist
+     if not os.path.exists(lockFilename):
+		 lockFile = open(lockFilename, 'wt')
+		 lockFile.write("Lock file for dayBuilder.py\n")
+		 lockFile.close()
+    
+     fh = open("/tmp/block", 'r')
      try:
          fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
+         # fcntl.flock(fh,fcntl.LOCK_EX)
      except IOError as e:
 		 print "Sorry. I think I might already be running, so I am going to exit. Please look for stray processes."
+		 print e
 		 os._exit(0)
 
 	
