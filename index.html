@@ -28,6 +28,10 @@
 	var previewIndex = 0;
 	var width=0
 	var height=0;
+	var refreshPage = false;
+	var refreshInterval = 10;   // Refresh page interval in seconds
+	var countdownTime;
+	
 	
 	// Call the start up method after the page has finished loading
 	window.addEventListener("load", pageLoaded, false);
@@ -361,6 +365,24 @@
 		console.log("About to print the page...");
 		// window.print();
 	}
+	
+	function toggleRefresh() {
+		if (refreshPage) {
+			refreshPage = false;
+			$('#refreshicon').css('color', '#aaaaaa');
+		} else {
+			refreshPage = true;
+			$('#refreshicon').css('color', '#222222');
+			countdownTime = refreshInterval;
+			setInterval(function(){ 
+				countdownTime--;
+				$('#countdown').text(countdownTime); }, 1000);
+		}
+		
+	}
+			
+			
+			
 		
 	
 </script>
@@ -372,8 +394,9 @@
 	<span class="glyphicon glyphicon-th-list" onclick="switchTable('rows')"></span>&nbsp;
 	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>&nbsp;
 	<input type="text" size="8" id="filter" oninput="filterImages()" onfocus="closePreview()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>&nbsp;
-	<span class="glyphicon glyphicon-picture" onclick="togglePreview()"></span>
-	<span class="glyphicon glyphicon-print" onclick="print()"></span>
+	<span class="glyphicon glyphicon-picture" onclick="togglePreview()"></span>&nbsp;
+	<span class="glyphicon glyphicon-refresh" style="color:#aaaaaa" onclick="toggleRefresh()" id="refreshicon"></span><span id="countdown">10</span>&nbsp;
+	<!-- <span class="glyphicon glyphicon-print" onclick="print()"></span> -->
 	<br/>
 	
 	<div id="helpoverlay" style="position: fixed; z-index: 1; left: 50px; top: 20px; background-color: lightgrey; font-size: 14px; opacity: 0.8;"></div>

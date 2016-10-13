@@ -19,7 +19,7 @@ def  run_once():
 		 lockFile.write("Lock file for dayBuilder.py\n")
 		 lockFile.close()
     
-     fh = open("/tmp/block", 'r')
+     fh = open(lockFilename, 'r')
      try:
          fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
          # fcntl.flock(fh,fcntl.LOCK_EX)
