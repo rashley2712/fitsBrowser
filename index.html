@@ -20,8 +20,8 @@
 	// Global variables
 	var allImages;
 	var currentImages;
-	tableFormat = "grid";
-	currentDirection = "ascending";
+	var tableFormat = "grid";
+	var currentDirection = "ascending";
 	var previewCanvasVisible = false;
 	var previewCanvas;
 	var image;
@@ -30,7 +30,9 @@
 	var height=0;
 	var refreshPage = false;
 	var refreshInterval = 10;   // Refresh page interval in seconds
-	var countdownTime;
+	var countdownTime = refreshInterval;		
+	var countdownTimerID = null;
+	var searchString = "";
 	
 	
 	// Call the start up method after the page has finished loading
@@ -170,6 +172,8 @@
 		
 	function pageLoaded() {
 		$("#numberimages").text(allImages.length);
+		$('#countdown').text(countdownTime); 
+	
 		for (i in allImages) {
 			var rawHeaderData = "";
 			for (h in allImages[i].headers) rawHeaderData+= allImages[i].headers[h] + " ";
@@ -188,16 +192,24 @@
 		
 		// Check for any pre-saved configuration
 		if (localStorage.searchString) {
-			$("#filter").text(localStorage.searchString);
+			searchString = localStorage.searchString;
+			$("#filter").val(searchString);	
 			filterImages();
 		}
+		
 		if (localStorage.tableFormat) {
 			tableFormat = localStorage.tableFormat;
 		}
 		if (localStorage.sortOrder) {
 			sort(localStorage.sortOrder);
-			console.log("retrieved sort order", localStorage.sortOrder);
 		} else sort("ascending");
+		
+		if (localStorage.refreshPage=="true") toggleRefresh();
+		if (localStorage.refreshInterval) refreshInterval = Number(localStorage.refreshInterval); else refreshInterval = 20;
+		countdownTime = refreshInterval;
+		$('#countdown').text(countdownTime); 
+	
+
 		
 		makeImageTable(currentImages);
 		previewCanvas = document.getElementById("imagecanvas");
@@ -225,7 +237,7 @@
 		    return x < y ? 1 : x > y ? -1 : 0;
 		});
 		
-		console.log("Sorted: ", currentDirection);
+		// console.log("Sorted: ", currentDirection);
 		makeImageTable(currentImages);
 		if (currentDirection == "ascending") {
 			$("#sorticon").removeClass("glyphicon-sort-by-alphabet");
@@ -323,6 +335,7 @@
 		$("#numberimages").text(currentImages.length + "/" + allImages.length);
 		previewIndex = 0;
 		localStorage.searchString = enteredText;
+		console.log("Saved: " + localStorage.searchString);
 	}
 	
 	var HelpHTML = "<b>Available commands:</b><br/>";
@@ -370,18 +383,45 @@
 		if (refreshPage) {
 			refreshPage = false;
 			$('#refreshicon').css('color', '#aaaaaa');
+			clearInterval(countdownTimerID);
+			localStorage.refreshPage = false;
 		} else {
 			refreshPage = true;
+			localStorage.refreshPage = true;
 			$('#refreshicon').css('color', '#222222');
-			countdownTime = refreshInterval;
-			setInterval(function(){ 
+			countdownTimerID = setInterval(function(){ 
 				countdownTime--;
-				$('#countdown').text(countdownTime); }, 1000);
+				$('#countdown').text(countdownTime); 
+				if (countdownTime <= 0) {
+					refreshImageData();
+					countdownTime = refreshInterval;
+					}
+				}, 1000);
+				
 		}
 		
 	}
-			
-			
+	
+	function refreshImageData() {
+		console.log("Refreshing image data");
+		window.location.reload();
+	}		
+
+	function changeRefreshInterval() {
+		refreshInput = prompt("Refresh interval in seconds", refreshInterval);
+		
+		timeSeconds = Number(refreshInput);
+		if (!Number.isNaN(timeSeconds)) {
+			console.log("New time: ", timeSeconds);
+		}
+		refreshInterval = timeSeconds;
+		localStorage.refreshInterval = refreshInterval;
+		countdownTime = refreshInterval;
+		$('#countdown').text(countdownTime); 
+	
+	}
+
+		
 			
 		
 	
@@ -395,7 +435,7 @@
 	<span id="sorticon" class="glyphicon glyphicon-sort-by-alphabet-alt" onclick="sort('toggle')"></span>&nbsp;
 	<input type="text" size="8" id="filter" oninput="filterImages()" onfocus="closePreview()"/><span class="glyphicon glyphicon-search" onclick="filter()"></span>&nbsp;
 	<span class="glyphicon glyphicon-picture" onclick="togglePreview()"></span>&nbsp;
-	<span class="glyphicon glyphicon-refresh" style="color:#aaaaaa" onclick="toggleRefresh()" id="refreshicon"></span><span id="countdown">10</span>&nbsp;
+	<span class="glyphicon glyphicon-refresh" style="color:#aaaaaa" onclick="toggleRefresh()" id="refreshicon"></span><span id="countdown" onclick="changeRefreshInterval()"></span>&nbsp;
 	<!-- <span class="glyphicon glyphicon-print" onclick="print()"></span> -->
 	<br/>
 	
