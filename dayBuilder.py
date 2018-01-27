@@ -7,7 +7,7 @@ def debug(output):
 	global debugLevel
 	if not debugLevel: return
 	print(str(output))
-	
+
 fh=0
 
 def  run_once():
@@ -18,7 +18,7 @@ def  run_once():
 		 lockFile = open(lockFilename, 'wt')
 		 lockFile.write("Lock file for dayBuilder.py\n")
 		 lockFile.close()
-    
+
      fh = open(lockFilename, 'r')
      try:
          fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -28,7 +28,7 @@ def  run_once():
 		 print e
 		 os._exit(0)
 
-	
+
 if __name__ == "__main__":
 	run_once()
 	debugLevel = 0
@@ -42,14 +42,14 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	if args.debug: debugLevel = 1
 	debug(args)
-	
+
 	config = configHelper.configClass("fitsBrowser")
 	webPath = config.assertProperty("WebPath", args.webpath)
 	installPath = config.assertProperty("InstallPath", args.installpath)
 	dataPath = config.assertProperty("DataPath", args.datapath)
-	
+
 	debug(config)
-	
+
 	# Now run 'fitBrowser'
 	if args.date == "{today}":
 		dateFolder = str(datetime.date.today()).replace('-','')
@@ -58,7 +58,7 @@ if __name__ == "__main__":
 	else:
 		dateFolder = args.date
 	dataFolder = dataPath + "/" + dateFolder
-	
+
 	# First, check if the source data is there
 	if not os.path.exists(dataPath):
 		print "The folder for the source data %s could not be found. Exiting."%dataPath
@@ -66,33 +66,30 @@ if __name__ == "__main__":
 	if not os.path.exists(dataFolder):
 		print "The folder for the source data %s could not be found. Exiting."%dataFolder
 		sys.exit()
-	
+
 	# Second, check to see if the webpath already exists
 	if not os.path.exists(webPath):
 		debug("Creating folder %s"%webPath)
 		os.makedirs(webPath)
-		
-		
+
+
 	# Copy the needed files into the destination folder
 	fileList = ['rootpage.html', 'jquery.js']
 	for f in fileList: shutil.copy2(installPath + "/" + f, webPath + "/" + f)
-	
+
 	# Exit now if '--copyonly is specified
 	if args.copyonly: sys.exit()
-	
-	
+
+
 	outputFolder = webPath + "/" + dateFolder
 	debug("Looking for FITS files in folder: %s"%dataFolder)
-	debug("Writing to: %s"%outputFolder)
 	
 	fitsBrowserCommand = [installPath + "/fitsBrowser.py"]
-	fitsBrowserCommand.append('--datapath')
+	fitsBrowserCommand.append('-f')
 	fitsBrowserCommand.append(dataFolder)
 	fitsBrowserCommand.append('--webpath')
 	fitsBrowserCommand.append(outputFolder)
 	fitsBrowserCommand.append('--title')
 	fitsBrowserCommand.append('INT images for ' + dateFolder)
-					
+
 	subprocess.call(fitsBrowserCommand)
-		
-	

@@ -9,7 +9,7 @@ class fitsObject:
 		self.allHeaders = {}
 		self.fullImage = {}
 		self.debug = debug
-		
+
 	def initFromFITSFile(self, filename, path="."):
 		images = []
 		try:
@@ -35,15 +35,15 @@ class fitsObject:
 					self.allHeaders[key] = card.header[key]
 			hdulist.close(output_verify='ignore')
 		except astropy.io.fits.verify.VerifyError as e:
-			
+
 			print "WARNING: Verification error", e
-			
-		except Exception as e: 
+
+		except Exception as e:
 			print "Unexpected error:", sys.exc_info()[0]
 			print e
 			print "Could not find any valid FITS data for %s"%filename
 			return False
-		
+
 		self.filename = filename
 		if len(images)==0:
 			if self.debug: print "Could not find any valid FITS data for %s"%filename
@@ -54,11 +54,11 @@ class fitsObject:
 			self.fullImage = images[0]
 			self.size = numpy.shape(self.fullImage['data'])
 		return True
-		
+
 	def getHeader(self, key):
 		if key in self.allHeaders.keys():
 			return { key: self.allHeaders[key] }
-			
+
 	def combineImages(self, images):
 		if self.debug: print "Combining %d multiple images."%len(images)
 		WFC = False
@@ -68,15 +68,15 @@ class fitsObject:
 			WFC = True
 		except KeyError:
 			pass
-		
-		# Reduce the images sizes by 1/4	
+
+		# Reduce the images sizes by 1/4
 		for num, i in enumerate(images):
 			percent = 25
 			if self.debug: print "Shrinking image %d by %d percent."%(num, percent)
 			i['data'] = scipy.misc.imresize(self.boostImageData(i['data']), percent)
 			i['size'] = numpy.shape(i['data'])
 			if self.debug: print "New size:", i['size']
-			
+
 		if WFC:
 			# Custom code to stitch the WFC images together
 			CCD1 = images[0]
@@ -84,7 +84,7 @@ class fitsObject:
 			CCD3 = images[2]
 			CCD4 = images[3]
 			width = CCD1['size'][1]
-			height = CCD1['size'][0] 
+			height = CCD1['size'][0]
 			fullWidth = width + height
 			fullHeight = 3 * width
 			if self.debug: print "WFC width", fullWidth, "WFC height", fullHeight
@@ -104,7 +104,7 @@ class fitsObject:
 			for i in images:
 				totalWidth+= i['size'][1]
 				totalHeight+=i['size'][0]
-			if self.debug: print "potential width, height", totalWidth, totalHeight 
+			if self.debug: print "potential width, height", totalWidth, totalHeight
 			if totalWidth<totalHeight:
 				if self.debug: print "Stacking horizontally"
 				maxHeight = 0
@@ -115,19 +115,19 @@ class fitsObject:
 				segWstart = 0
 				segHstart = 0
 				for num, i in enumerate(images):
-					segWidth = i['size'][1] 
+					segWidth = i['size'][1]
 					segHeight = i['size'][0]
 					segWend = segWstart + segWidth
 					segHend = segHstart + segHeight
 					fullImage[segHstart:segHend, segWstart: segWend] = i['data']
 					segWstart+= segWidth
-		
-		
+
+
 		self.fullImage['data'] = fullImage
 		self.fullImage['size'] = numpy.shape(fullImage)
 		self.size = numpy.shape(fullImage)
 		if self.debug: print "Final size:", self.size
-		
+
 	def boostImageData(self, imageData):
 		""" Returns a normalised array where lo percent of the pixels are 0 and hi percent of the pixels are 255 """
 		hi = 99
@@ -143,8 +143,8 @@ class fitsObject:
 		data-= pLo
 		data/=scale
 		return data
-		
-	
+
+
 	def getBoostedImage(self):
 		""" Returns a normalised array where lo percent of the pixels are 0 and hi percent of the pixels are 255 """
 		hi = 99
@@ -163,7 +163,7 @@ class fitsObject:
 		self.boostedImage = data
 		self.boostedImageExists = True
 		return data
-		
+
 	def writeAsPNG(self, boosted=False, filename = None):
 		imageData = numpy.copy(self.fullImage['data'])
 		if boosted==True:
@@ -179,19 +179,19 @@ class fitsObject:
 			palette.extend((i, i, i)) # grey scale
 			img.putpalette(palette)
 		img.putdata(testData)
-		
+
 		if filename==None:
 			outputFilename = changeExtension(self.filename, "png")
 		else:
 			outputFilename = filename
-			
-		if self.debug: print ("Writing PNG file: " + outputFilename) 
+
+		if self.debug: print ("Writing PNG file: " + outputFilename)
 		img.save(outputFilename, "PNG", clobber=True)
-		
+
 	def createThumbnail(self, filename = None, size=128):
 		if not self.boostedImageExists: imageData = self.getBoostedImage()
 		else: imageData = self.boostedImage
-		
+
 		imgData = numpy.rot90(imageData, 3)
 		imgSize = numpy.shape(imgData)
 		imgLength = imgSize[0] * imgSize[1]
@@ -208,6 +208,6 @@ class fitsObject:
 			outputFilename = "thumb_" + changeExtension(self.filename, "png")
 		else:
 			outputFilename = filename
-		
-		if self.debug: print ("Writing thumbnail file: " + outputFilename) 
+
+		if self.debug: print ("Writing thumbnail file: " + outputFilename)
 		img.save(outputFilename, "PNG", clobber=True)
